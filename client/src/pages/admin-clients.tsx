@@ -5,11 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ClientDetailModal } from "@/components/client-detail-modal";
 import { Search, UserPlus, Mail, Phone, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
 
 export default function AdminClients() {
   const style = { "--sidebar-width": "16rem" };
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const clients = [
     { id: 1, name: "John Doe", email: "john@example.com", phone: "+1 234-567-8901", package: "Elite", status: "active", joinDate: "Nov 10, 2025", lastActive: "2 hours ago" },
@@ -21,6 +25,11 @@ export default function AdminClients() {
     { id: 7, name: "James Wilson", email: "james@example.com", phone: "+1 234-567-8907", package: "Premium", status: "active", joinDate: "Nov 4, 2025", lastActive: "1 hour ago" },
     { id: 8, name: "Maria Garcia", email: "maria@example.com", phone: "+1 234-567-8908", package: "Elite", status: "inactive", joinDate: "Nov 3, 2025", lastActive: "7 days ago" },
   ];
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -37,12 +46,14 @@ export default function AdminClients() {
 
           <main className="flex-1 overflow-auto p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search clients..."
                     className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     data-testid="input-search-clients"
                   />
                 </div>
@@ -54,11 +65,11 @@ export default function AdminClients() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="font-display">All Clients ({clients.length})</CardTitle>
+                  <CardTitle className="font-display">All Clients ({filteredClients.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {clients.map((client) => (
+                    {filteredClients.map((client) => (
                       <div
                         key={client.id}
                         className="flex items-center gap-4 p-4 rounded-md border hover-elevate"
@@ -71,7 +82,7 @@ export default function AdminClients() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold" data-testid="text-client-name">{client.name}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 flex-wrap">
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {client.email}
@@ -82,7 +93,7 @@ export default function AdminClients() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <div className="text-right hidden md:block">
                             <p className="text-sm font-medium">Joined</p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -99,8 +110,13 @@ export default function AdminClients() {
                           >
                             {client.status}
                           </Badge>
-                          <Button variant="outline" size="sm" data-testid="button-view-details">
-                            View
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedClient(client)}
+                            data-testid="button-view-details"
+                          >
+                            View Details
                           </Button>
                         </div>
                       </div>
@@ -112,6 +128,14 @@ export default function AdminClients() {
           </main>
         </div>
       </div>
+
+      {selectedClient && (
+        <ClientDetailModal
+          open={!!selectedClient}
+          onOpenChange={(open) => !open && setSelectedClient(null)}
+          client={selectedClient}
+        />
+      )}
     </SidebarProvider>
   );
 }
