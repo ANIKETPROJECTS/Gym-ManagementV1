@@ -44,7 +44,7 @@ export default function Landing() {
             <Button
               size="lg"
               className="text-lg px-12 py-6 h-auto w-full sm:w-auto backdrop-blur-sm bg-primary/90 hover:bg-primary"
-              onClick={() => setLocation("/client")}
+              onClick={() => setLocation("/client-access")}
               data-testid="button-client-access"
             >
               <User className="h-5 w-5 mr-2" />

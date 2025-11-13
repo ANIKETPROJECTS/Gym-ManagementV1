@@ -3,6 +3,57 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize default packages if none exist
+  app.post("/api/init", async (_req, res) => {
+    try {
+      const existingPackages = await storage.getAllPackages();
+      if (existingPackages.length === 0) {
+        const defaultPackages = [
+          {
+            name: "Basic",
+            description: "Perfect for beginners",
+            price: 29.99,
+            features: ["Access to gym equipment", "Basic workout plans"],
+            videoAccess: false,
+            liveSessionsPerMonth: 0,
+            dietPlanAccess: false,
+            workoutPlanAccess: true,
+          },
+          {
+            name: "Premium",
+            description: "Most popular choice",
+            price: 59.99,
+            features: ["All Basic features", "Video library access", "Diet plans", "2 live sessions/month"],
+            videoAccess: true,
+            liveSessionsPerMonth: 2,
+            dietPlanAccess: true,
+            workoutPlanAccess: true,
+          },
+          {
+            name: "Elite",
+            description: "Complete fitness solution",
+            price: 99.99,
+            features: ["All Premium features", "Unlimited live sessions", "Personal trainer support", "Priority support"],
+            videoAccess: true,
+            liveSessionsPerMonth: 999,
+            dietPlanAccess: true,
+            workoutPlanAccess: true,
+          },
+        ];
+        
+        for (const pkg of defaultPackages) {
+          await storage.createPackage(pkg);
+        }
+        
+        res.json({ message: "Default packages created successfully", count: defaultPackages.length });
+      } else {
+        res.json({ message: "Packages already exist", count: existingPackages.length });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Package routes
   app.get("/api/packages", async (_req, res) => {
     try {

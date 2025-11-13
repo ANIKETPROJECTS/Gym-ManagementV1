@@ -1,36 +1,189 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ClientDetailModal } from "@/components/client-detail-modal";
-import { AddClientModal } from "@/components/add-client-modal";
-import { Search, UserPlus, Mail, Phone, Calendar } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminClients() {
-  const style = { "--sidebar-width": "16rem" };
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const { toast } = useToast();
 
-  const clients = [
-    { id: 1, name: "John Doe", email: "john@example.com", phone: "+1 234-567-8901", package: "Elite", status: "active", joinDate: "Nov 10, 2025", lastActive: "2 hours ago" },
-    { id: 2, name: "Sarah Smith", email: "sarah@example.com", phone: "+1 234-567-8902", package: "Premium", status: "active", joinDate: "Nov 9, 2025", lastActive: "5 hours ago" },
-    { id: 3, name: "Mike Johnson", email: "mike@example.com", phone: "+1 234-567-8903", package: "Basic", status: "active", joinDate: "Nov 8, 2025", lastActive: "1 day ago" },
-    { id: 4, name: "Emily Brown", email: "emily@example.com", phone: "+1 234-567-8904", package: "Premium", status: "inactive", joinDate: "Nov 7, 2025", lastActive: "5 days ago" },
-    { id: 5, name: "David Lee", email: "david@example.com", phone: "+1 234-567-8905", package: "Elite", status: "active", joinDate: "Nov 6, 2025", lastActive: "3 hours ago" },
-    { id: 6, name: "Lisa Wang", email: "lisa@example.com", phone: "+1 234-567-8906", package: "Basic", status: "active", joinDate: "Nov 5, 2025", lastActive: "6 hours ago" },
-    { id: 7, name: "James Wilson", email: "james@example.com", phone: "+1 234-567-8907", package: "Premium", status: "active", joinDate: "Nov 4, 2025", lastActive: "1 hour ago" },
-    { id: 8, name: "Maria Garcia", email: "maria@example.com", phone: "+1 234-567-8908", package: "Elite", status: "inactive", joinDate: "Nov 3, 2025", lastActive: "7 days ago" },
-  ];
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    packageId: "",
+    age: "",
+    gender: "",
+    height: "",
+    weight: "",
+    goal: "",
+  });
 
-  const filteredClients = clients.filter(client =>
+  const style = {
+    "--sidebar-width": "16rem",
+  };
+
+  const { data: clients = [], isLoading: clientsLoading } = useQuery<any[]>({
+    queryKey: ['/api/clients'],
+  });
+
+  const { data: packages = [] } = useQuery<any[]>({
+    queryKey: ['/api/packages'],
+  });
+
+  const createClientMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('/api/clients', 'POST', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      setIsAddDialogOpen(false);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Client added successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add client",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest(`/api/clients/${id}`, 'PATCH', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      setEditingClient(null);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Client updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update client",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest(`/api/clients/${id}`, 'DELETE');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      toast({
+        title: "Success",
+        description: "Client deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete client",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      packageId: "",
+      age: "",
+      gender: "",
+      height: "",
+      weight: "",
+      goal: "",
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      age: formData.age ? parseInt(formData.age) : undefined,
+      height: formData.height ? parseFloat(formData.height) : undefined,
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      packageId: formData.packageId || undefined,
+      email: formData.email || undefined,
+      gender: formData.gender || undefined,
+      goal: formData.goal || undefined,
+    };
+
+    if (editingClient) {
+      updateClientMutation.mutate({ id: editingClient._id, data: submitData });
+    } else {
+      createClientMutation.mutate(submitData);
+    }
+  };
+
+  const handleEdit = (client: any) => {
+    setEditingClient(client);
+    setFormData({
+      name: client.name || "",
+      phone: client.phone || "",
+      email: client.email || "",
+      packageId: client.packageId?._id || "",
+      age: client.age?.toString() || "",
+      gender: client.gender || "",
+      height: client.height?.toString() || "",
+      weight: client.weight?.toString() || "",
+      goal: client.goal || "",
+    });
+  };
+
+  const filteredClients = clients.filter((client: any) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchQuery.toLowerCase())
+    client.phone.includes(searchQuery)
   );
 
   return (
@@ -41,108 +194,273 @@ export default function AdminClients() {
           <header className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <h1 className="text-2xl font-display font-bold tracking-tight">Clients</h1>
+              <h1 className="text-2xl font-display font-bold tracking-tight">
+                Client Management
+              </h1>
             </div>
             <ThemeToggle />
           </header>
 
           <main className="flex-1 overflow-auto p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search clients..."
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    data-testid="input-search-clients"
-                  />
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search clients by name or phone..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search"
+                    />
+                  </div>
                 </div>
-                <Button onClick={() => setShowAddModal(true)} data-testid="button-add-client">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Client
-                </Button>
-              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-display">All Clients ({filteredClients.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {filteredClients.map((client) => (
-                      <div
-                        key={client.id}
-                        className="flex items-center gap-4 p-4 rounded-md border hover-elevate"
-                        data-testid={`row-client-${client.id}`}
-                      >
-                        <Avatar>
-                          <AvatarFallback className="bg-primary text-primary-foreground">
-                            {client.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold" data-testid="text-client-name">{client.name}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {client.email}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {client.phone}
-                            </span>
-                          </div>
+                <Dialog open={isAddDialogOpen || !!editingClient} onOpenChange={(open) => {
+                  if (!open) {
+                    setIsAddDialogOpen(false);
+                    setEditingClient(null);
+                    resetForm();
+                  }
+                }}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-client">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Client
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>
+                      <DialogDescription>
+                        {editingClient ? "Update client information" : "Enter client details to add them to the system"}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Name *</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                            data-testid="input-client-name"
+                          />
                         </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <div className="text-right hidden md:block">
-                            <p className="text-sm font-medium">Joined</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {client.joinDate}
-                            </p>
-                          </div>
-                          <Badge variant="outline" data-testid="badge-package">
-                            {client.package}
-                          </Badge>
-                          <Badge
-                            className={client.status === "active" ? "bg-chart-3" : "bg-muted"}
-                            data-testid="badge-status"
-                          >
-                            {client.status}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedClient(client)}
-                            data-testid="button-view-details"
-                          >
-                            View Details
-                          </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone *</Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            required
+                            disabled={!!editingClient}
+                            data-testid="input-client-phone"
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            data-testid="input-client-email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="package">Package</Label>
+                          <Select
+                            value={formData.packageId}
+                            onValueChange={(value) => setFormData({ ...formData, packageId: value })}
+                          >
+                            <SelectTrigger data-testid="select-package">
+                              <SelectValue placeholder="Select package" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {packages.map((pkg: any) => (
+                                <SelectItem key={pkg._id} value={pkg._id}>
+                                  {pkg.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="age">Age</Label>
+                          <Input
+                            id="age"
+                            type="number"
+                            value={formData.age}
+                            onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                            data-testid="input-client-age"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="gender">Gender</Label>
+                          <Select
+                            value={formData.gender}
+                            onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                          >
+                            <SelectTrigger data-testid="select-gender">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="height">Height (cm)</Label>
+                          <Input
+                            id="height"
+                            type="number"
+                            step="0.1"
+                            value={formData.height}
+                            onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                            data-testid="input-client-height"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="weight">Weight (kg)</Label>
+                          <Input
+                            id="weight"
+                            type="number"
+                            step="0.1"
+                            value={formData.weight}
+                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                            data-testid="input-client-weight"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="goal">Goal</Label>
+                        <Select
+                          value={formData.goal}
+                          onValueChange={(value) => setFormData({ ...formData, goal: value })}
+                        >
+                          <SelectTrigger data-testid="select-goal">
+                            <SelectValue placeholder="Select goal" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="lose">Weight Loss</SelectItem>
+                            <SelectItem value="maintain">Maintain Weight</SelectItem>
+                            <SelectItem value="gain">Muscle Gain</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          type="submit"
+                          disabled={createClientMutation.isPending || updateClientMutation.isPending}
+                          data-testid="button-save-client"
+                        >
+                          {editingClient ? "Update Client" : "Add Client"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Package</TableHead>
+                      <TableHead>Goal</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          Loading clients...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredClients.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No clients found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredClients.map((client: any) => (
+                        <TableRow key={client._id} data-testid={`row-client-${client._id}`}>
+                          <TableCell className="font-semibold" data-testid="text-client-name">
+                            {client.name}
+                          </TableCell>
+                          <TableCell data-testid="text-client-phone">{client.phone}</TableCell>
+                          <TableCell data-testid="text-client-email">
+                            {client.email || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {client.packageId ? (
+                              <Badge variant="outline" data-testid="badge-package">
+                                {client.packageId.name}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">No package</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {client.goal ? (
+                              <Badge variant="secondary" data-testid="badge-goal">
+                                {client.goal === 'lose' ? 'Weight Loss' : client.goal === 'gain' ? 'Muscle Gain' : 'Maintain'}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(client)}
+                                data-testid={`button-edit-${client._id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteClientMutation.mutate(client._id)}
+                                data-testid={`button-delete-${client._id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </main>
         </div>
       </div>
-
-      {selectedClient && (
-        <ClientDetailModal
-          open={!!selectedClient}
-          onOpenChange={(open) => !open && setSelectedClient(null)}
-          client={selectedClient}
-        />
-      )}
-
-      <AddClientModal
-        open={showAddModal}
-        onOpenChange={setShowAddModal}
-      />
     </SidebarProvider>
   );
 }
