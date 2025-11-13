@@ -6,35 +6,59 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, TrendingUp, Users, CreditCard, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 export default function AdminRevenue() {
   const style = { "--sidebar-width": "16rem" };
 
-  const monthlyRevenue = [
-    { month: "Jun", amount: 6240, clients: 98 },
-    { month: "Jul", amount: 6890, clients: 112 },
-    { month: "Aug", amount: 7450, clients: 128 },
-    { month: "Sep", amount: 7890, clients: 139 },
-    { month: "Oct", amount: 8150, clients: 148 },
-    { month: "Nov", amount: 8420, clients: 156 },
-  ];
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ['/api/clients'],
+  });
 
-  const packageRevenue = [
-    { package: "Basic", price: 29, clients: 62, revenue: 1798 },
-    { package: "Premium", price: 59, clients: 54, revenue: 3186 },
-    { package: "Elite", price: 99, clients: 40, revenue: 3960 },
-  ];
+  const { data: packages = [] } = useQuery<any[]>({
+    queryKey: ['/api/packages'],
+  });
 
-  const recentPayments = [
-    { id: 1, client: "John Doe", package: "Elite", amount: 99, date: "Nov 11, 2025", status: "paid" },
-    { id: 2, client: "Sarah Smith", package: "Premium", amount: 59, date: "Nov 11, 2025", status: "paid" },
-    { id: 3, client: "Mike Johnson", package: "Basic", amount: 29, date: "Nov 10, 2025", status: "paid" },
-    { id: 4, client: "Emily Brown", package: "Premium", amount: 59, date: "Nov 10, 2025", status: "pending" },
-    { id: 5, client: "David Lee", package: "Elite", amount: 99, date: "Nov 9, 2025", status: "paid" },
-  ];
+  const packageById = packages.reduce((map, pkg) => {
+    map[pkg._id] = pkg;
+    return map;
+  }, {} as Record<string, any>);
 
-  const maxRevenue = Math.max(...monthlyRevenue.map(m => m.amount));
+  const clientsWithPackages = clients.map(client => {
+    const packageId = typeof client.packageId === 'object' ? client.packageId._id : client.packageId;
+    const pkg = packageById[packageId];
+    return {
+      ...client,
+      packageData: pkg || null
+    };
+  });
+
+  const packageRevenue = packages.map(pkg => {
+    const clientCount = clientsWithPackages.filter(c => c.packageData?._id === pkg._id).length;
+    return {
+      package: pkg.name,
+      price: pkg.price,
+      clients: clientCount,
+      revenue: clientCount * pkg.price,
+    };
+  });
+
   const totalRevenue = packageRevenue.reduce((sum, p) => sum + p.revenue, 0);
+  const totalClients = clients.length;
+  const avgPerClient = totalClients > 0 ? Math.round(totalRevenue / totalClients) : 0;
+
+  const recentPayments = [...clientsWithPackages]
+    .filter(c => c.packageData)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+    .map((client, index) => ({
+      id: index + 1,
+      client: client.name,
+      package: client.packageData.name,
+      amount: client.packageData.price,
+      date: new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: 'paid',
+    }));
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -60,40 +84,40 @@ export default function AdminRevenue() {
               </div>
 
               <div className="grid md:grid-cols-4 gap-6">
-                <StatCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} trend="+23% from last month" trendUp={true} />
-                <StatCard title="Avg per Client" value={`$${Math.round(totalRevenue / 156)}`} icon={Users} trend="$54/client" trendUp={true} />
-                <StatCard title="Payments Due" value="$236" icon={CreditCard} trend="4 pending" trendUp={false} />
-                <StatCard title="Growth Rate" value="18%" icon={TrendingUp} trend="+5% this month" trendUp={true} />
+                <StatCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} trend={`From ${totalClients} clients`} trendUp={true} />
+                <StatCard title="Avg per Client" value={`$${avgPerClient}`} icon={Users} trend={`${totalClients} total clients`} trendUp={true} />
+                <StatCard title="Total Clients" value={totalClients} icon={CreditCard} trend={`${clientsWithPackages.filter(c => c.packageData).length} active`} trendUp={true} />
+                <StatCard title="Packages" value={packages.length} icon={TrendingUp} trend="Available plans" trendUp={true} />
               </div>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="font-display">Monthly Revenue Trend</CardTitle>
+                  <CardTitle className="font-display">Current Revenue Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {monthlyRevenue.map((month, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-semibold w-12">{month.month}</span>
-                          <div className="flex-1 mx-4">
-                            <div className="bg-muted rounded-full h-8 relative overflow-hidden">
-                              <div
-                                className="bg-primary h-8 rounded-full flex items-center justify-end pr-3"
-                                style={{ width: `${(month.amount / maxRevenue) * 100}%` }}
-                              >
-                                <span className="text-xs font-semibold text-primary-foreground">
-                                  ${month.amount.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <span className="text-muted-foreground text-sm w-24 text-right">
-                            {month.clients} clients
-                          </span>
-                        </div>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-accent/50 rounded-md">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Monthly Revenue</p>
+                        <p className="text-3xl font-bold">${totalRevenue.toLocaleString()}</p>
                       </div>
-                    ))}
+                      <DollarSign className="h-12 w-12 text-chart-3 opacity-50" />
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Revenue Distribution</p>
+                      {packageRevenue.length > 0 ? (
+                        packageRevenue.map((pkg) => (
+                          <div key={pkg.package} className="flex items-center justify-between text-sm">
+                            <span>{pkg.package}</span>
+                            <span className="text-muted-foreground">
+                              {pkg.clients} × ${pkg.price} = <span className="font-semibold">${pkg.revenue}</span>
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No revenue data available</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

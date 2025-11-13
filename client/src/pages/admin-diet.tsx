@@ -8,9 +8,13 @@ import { Plus, Users } from "lucide-react";
 import { DietPlanGenerator } from "@/components/diet-plan-generator";
 import { WorkoutPlanGenerator } from "@/components/workout-plan-generator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AssignDietPlanDialog } from "@/components/assign-diet-plan-dialog";
+import { useState } from "react";
 
 export default function AdminDiet() {
   const style = { "--sidebar-width": "16rem" };
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   const dietPlans = [
     { id: 1, name: "Weight Loss Plan", calories: 1800, assignedTo: 24, meals: 4, type: "Low Carb" },
@@ -19,6 +23,11 @@ export default function AdminDiet() {
     { id: 4, name: "Keto Diet Plan", calories: 1900, assignedTo: 12, meals: 4, type: "Ketogenic" },
     { id: 5, name: "Vegan Athlete Plan", calories: 2500, assignedTo: 8, meals: 5, type: "Vegan" },
   ];
+
+  const handleAssignClick = (plan: any) => {
+    setSelectedPlan(plan);
+    setAssignDialogOpen(true);
+  };
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -91,7 +100,13 @@ export default function AdminDiet() {
                             <Button variant="outline" className="flex-1" size="sm" data-testid="button-edit-plan">
                               Edit
                             </Button>
-                            <Button variant="outline" className="flex-1" size="sm" data-testid="button-assign-plan">
+                            <Button 
+                              variant="outline" 
+                              className="flex-1" 
+                              size="sm" 
+                              onClick={() => handleAssignClick(plan)}
+                              data-testid="button-assign-plan"
+                            >
                               Assign
                             </Button>
                           </div>
@@ -109,6 +124,12 @@ export default function AdminDiet() {
           </main>
         </div>
       </div>
+      
+      <AssignDietPlanDialog 
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        dietPlan={selectedPlan}
+      />
     </SidebarProvider>
   );
 }

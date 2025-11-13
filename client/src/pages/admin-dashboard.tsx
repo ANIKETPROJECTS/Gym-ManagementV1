@@ -6,18 +6,53 @@ import { Users, Activity, DollarSign, TrendingUp, UserPlus, Video } from "lucide
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
+  const [, setLocation] = useLocation();
   const style = {
     "--sidebar-width": "16rem",
   };
 
-  const recentClients = [
-    { name: "John Doe", package: "Elite", joinedDate: "Nov 10, 2025", status: "active" },
-    { name: "Sarah Smith", package: "Premium", joinedDate: "Nov 9, 2025", status: "active" },
-    { name: "Mike Johnson", package: "Basic", joinedDate: "Nov 8, 2025", status: "active" },
-    { name: "Emily Brown", package: "Premium", joinedDate: "Nov 7, 2025", status: "inactive" },
-  ];
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ['/api/clients'],
+  });
+
+  const { data: packages = [] } = useQuery<any[]>({
+    queryKey: ['/api/packages'],
+  });
+
+  const packageById = packages.reduce((map, pkg) => {
+    map[pkg._id] = pkg;
+    return map;
+  }, {} as Record<string, any>);
+
+  const clientsWithPackages = clients.map(client => {
+    const packageId = typeof client.packageId === 'object' ? client.packageId._id : client.packageId;
+    const pkg = packageById[packageId];
+    return {
+      ...client,
+      packageData: pkg || null
+    };
+  });
+
+  const totalClients = clients.length;
+  const activeClients = clientsWithPackages.filter(c => c.packageData).length;
+  
+  const monthlyRevenue = clientsWithPackages.reduce((sum, client) => {
+    return sum + (client.packageData?.price || 0);
+  }, 0);
+
+  const recentClients = [...clientsWithPackages]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4)
+    .map(client => ({
+      name: client.name,
+      package: client.packageData?.name || 'No Package',
+      joinedDate: new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: client.packageData ? 'active' : 'inactive',
+    }));
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -39,30 +74,30 @@ export default function AdminDashboard() {
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                   title="Total Clients"
-                  value={156}
+                  value={totalClients}
                   icon={Users}
-                  trend="+12% from last month"
+                  trend={`${activeClients} active`}
                   trendUp={true}
                 />
                 <StatCard
                   title="Active Users"
-                  value={142}
+                  value={activeClients}
                   icon={Activity}
-                  trend="+8% from last month"
+                  trend={`${totalClients - activeClients} inactive`}
                   trendUp={true}
                 />
                 <StatCard
                   title="Monthly Revenue"
-                  value="$8,420"
+                  value={`$${monthlyRevenue.toLocaleString()}`}
                   icon={DollarSign}
-                  trend="+23% from last month"
+                  trend={`From ${totalClients} clients`}
                   trendUp={true}
                 />
                 <StatCard
-                  title="Growth Rate"
-                  value="18%"
+                  title="Packages Available"
+                  value={packages.length}
                   icon={TrendingUp}
-                  trend="Steady increase"
+                  trend="Membership plans"
                   trendUp={true}
                 />
               </div>
@@ -109,6 +144,7 @@ export default function AdminDashboard() {
                     <Button
                       variant="outline"
                       className="w-full mt-4"
+                      onClick={() => setLocation('/admin/clients')}
                       data-testid="button-view-all-clients"
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
