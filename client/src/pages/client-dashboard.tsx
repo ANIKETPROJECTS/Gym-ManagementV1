@@ -35,12 +35,12 @@ export default function ClientDashboard() {
   });
 
   // Fetch real videos from backend
-  const { data: videosData, isLoading: videosLoading } = useQuery<any[]>({
+  const { data: videosData, isLoading: videosLoading, isError: videosError } = useQuery<any[]>({
     queryKey: ['/api/videos'],
   });
 
   // Fetch real live sessions from backend
-  const { data: sessionsData, isLoading: sessionsLoading } = useQuery<any[]>({
+  const { data: sessionsData, isLoading: sessionsLoading, isError: sessionsError } = useQuery<any[]>({
     queryKey: ['/api/sessions'],
   });
 
@@ -93,16 +93,24 @@ export default function ClientDashboard() {
               <div>
                 <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Continue Watching</h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                  {videos.map((video) => (
-                    <VideoCard
-                      key={video.id}
-                      title={video.title}
-                      category={video.category}
-                      duration={video.duration}
-                      thumbnail={video.thumbnail}
-                      onPlay={() => handleVideoPlay(video)}
-                    />
-                  ))}
+                  {videosLoading ? (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">Loading videos...</div>
+                  ) : videosError ? (
+                    <div className="col-span-2 text-center py-8 text-destructive">Failed to load videos. Please try again.</div>
+                  ) : videos.length > 0 ? (
+                    videos.map((video) => (
+                      <VideoCard
+                        key={video.id}
+                        title={video.title}
+                        category={video.category}
+                        duration={video.duration}
+                        thumbnail={video.thumbnail}
+                        onPlay={() => handleVideoPlay(video)}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">No videos available</div>
+                  )}
                 </div>
               </div>
 
@@ -116,6 +124,8 @@ export default function ClientDashboard() {
                 <div className="grid md:grid-cols-2 gap-6">
                   {sessionsLoading ? (
                     <div className="col-span-2 text-center py-8 text-muted-foreground">Loading sessions...</div>
+                  ) : sessionsError ? (
+                    <div className="col-span-2 text-center py-8 text-destructive">Failed to load sessions. Please try again.</div>
                   ) : upcomingSessions.length > 0 ? (
                     upcomingSessions.map((session: any) => {
                       const sessionDate = new Date(session.scheduledAt);

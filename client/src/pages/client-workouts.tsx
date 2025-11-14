@@ -17,7 +17,7 @@ export default function ClientWorkouts() {
   const [videoModal, setVideoModal] = useState({ open: false, title: "", category: "", duration: "", thumbnail: "", url: "" });
 
   // Fetch real videos from backend
-  const { data: videosData, isLoading } = useQuery<any[]>({
+  const { data: videosData, isLoading, isError } = useQuery<any[]>({
     queryKey: ['/api/videos'],
   });
 
@@ -81,6 +81,10 @@ export default function ClientWorkouts() {
             {isLoading ? (
               <div className="col-span-full text-center py-12 text-muted-foreground">
                 Loading workout videos...
+              </div>
+            ) : isError ? (
+              <div className="col-span-full text-center py-12 text-destructive">
+                Failed to load videos. Please refresh the page.
               </div>
             ) : filteredVideos.length > 0 ? (
               filteredVideos.map((video) => (

@@ -3,21 +3,26 @@
 ## Project Overview
 Comprehensive online gym management system with separate admin and client dashboards, featuring three subscription tiers (Basic, Premium, Elite), video workout libraries, diet management, live training sessions, and progress tracking.
 
-## Current State
+## Current State (November 14, 2025)
 - **Design System**: Fitness-focused Material Design with blue/orange/green color scheme, Inter/Montserrat fonts
 - **Authentication**: Phone-based client login + admin password login (Admin@123)
 - **Payment**: Ready for Stripe integration
-- **Database**: MongoDB with automated seeding (demo client: 8600126395 / Abhijeet Singh)
-- **Phase**: Functional prototype with body composition tools and plan generators
+- **Database**: MongoDB with automated seeding on server startup
+  - Demo client: 8600126395 / Abhijeet Singh (Premium plan)
+  - 9 workout videos across categories (Strength, Yoga, Cardio, HIIT)
+  - 4 live training sessions (upcoming, live, completed)
+  - Sample diet and workout plans for demo client
+- **Phase**: **Client pages now fully wired to real backend data** - Dashboard, Videos, Diet, Sessions all fetch from MongoDB
 
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: React + TypeScript + Vite
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
+- **Backend**: Express.js + TypeScript + MongoDB
+- **Database**: MongoDB Atlas (via Mongoose)
 - **UI**: shadcn/ui + Tailwind CSS
 - **Routing**: Wouter
+- **State Management**: TanStack Query (React Query v5)
 
 ### Directory Structure
 ```
@@ -30,10 +35,11 @@ client/
       client-*.tsx    - Client dashboard pages
     lib/              - Utilities and configurations
 server/
-  routes.ts           - API endpoints (stubbed)
-  storage.ts          - Data layer interface
-shared/
-  schema.ts           - Shared types and validation
+  index.ts            - Server startup with MongoDB connection and auto-seeding
+  routes.ts           - Full CRUD API endpoints for all resources
+  storage.ts          - MongoDB data layer with Mongoose
+  models.ts           - Mongoose schemas for all collections
+attached_assets/      - Generated images for video thumbnails
 ```
 
 ## Features Implemented
@@ -109,13 +115,14 @@ shared/
 - Recent payments list
 - Export report functionality
 
-### Client Dashboard (`/client/*`)
+### Client Dashboard (`/client/*`) - **NOW USING REAL BACKEND DATA**
 
 #### 1. Dashboard (`/client`)
-- Welcome message with package badge
+- ✅ **REAL DATA**: Fetches client info, videos, and sessions from MongoDB
+- Welcome message with package badge (shows actual client name and plan)
 - 4 personal stats: Streak, Sessions Completed, Calories, Next Session
-- **Continue Watching** section (3 videos)
-- **Upcoming Live Sessions** (2 cards)
+- **Continue Watching** section (real videos from backend, limited to 3)
+- **Upcoming Live Sessions** (real sessions from backend with status='upcoming')
 - **Progress Tracker Widget**:
   - Weekly workout calendar
   - Visual goal tracking (Weight & Workouts)
@@ -127,22 +134,28 @@ shared/
 - Video player modal with completion tracking
 
 #### 2. Workouts (`/client/workouts`)
-- Full video library (9 videos)
-- **Working category filter** (All, Strength, Cardio, Yoga, HIIT)
-- Dynamic count updates
+- ✅ **REAL DATA**: Fetches all videos from MongoDB API (`/api/videos`)
+- Full video library (9 videos from database)
+- **Working category filter** - categories extracted dynamically from backend data
+- Dynamic count updates based on real data
 - Video player modal with "Mark as Complete" feature
+- Loading states and empty states
 
 #### 3. Diet Plan (`/client/diet`)
-- Nutrition goals dashboard (Calories, Protein, Carbs, Fats)
-- 3-day detailed meal plans:
-  - 4 meals per day with times
-  - Complete macro breakdown
-  - Total calories per day
+- ✅ **REAL DATA**: Fetches client-specific diet plans from MongoDB (`/api/diet-plans/client/:clientId`)
+- Nutrition goals dashboard (real Calories, Protein, Carbs, Fats from database)
+- Daily meal plan with real data:
+  - Breakfast, Lunch, Snack, Dinner from backend
+  - Complete macro breakdown from database
+  - Shows plan name and target calories
+- Loading and empty states (prompts to contact trainer if no plan)
 
 #### 4. Live Sessions (`/client/sessions`)
-- 3 sections: Live Now, Upcoming, Completed
-- Full session details (trainer, time, participants)
-- Join/Reserve buttons
+- ✅ **REAL DATA**: Fetches all sessions from MongoDB (`/api/sessions`)
+- 3 sections: Live Now (status='live'), Upcoming (status='upcoming'), Completed (status='completed')
+- Full session details from database (title, description, scheduled time, duration)
+- Functional Join buttons that open real meeting links in new tab
+- Loading and empty states for each section
 
 #### 5. Workout History (`/client/history`)
 - Total stats: Workouts, Calories, Duration
@@ -321,12 +334,29 @@ shared/
 - Responsive design works on all screen sizes
 - Dark mode fully functional across all pages
 
-## Recent Updates (November 2025)
+## Recent Updates (November 14, 2025)
+
+### ✅ Backend-Frontend Integration Complete
+- **Database Seeding**: Automated MongoDB seeding on server startup
+  - Creates 3 subscription packages (Basic, Premium, Elite)
+  - Creates demo client (8600126395 / Abhijeet Singh)
+  - Seeds 9 workout videos across 4 categories
+  - Seeds 4 live training sessions with different statuses
+  - Creates sample diet and workout plans for demo client
+  
+- **Client Pages Fully Wired**:
+  - Dashboard: Real client data, videos, and sessions from MongoDB
+  - Video Library: Dynamic video fetching with real categories and filtering
+  - Diet Plan: Client-specific diet plans with real macros and meals
+  - Live Sessions: Real sessions categorized by status with functional join links
+  - All pages use TanStack Query for efficient data fetching
+  - Loading states and empty states implemented throughout
 
 ### Authentication Flow
 - Removed admin button from landing page
 - Admin access restricted to `/admin` route only
 - Password: `Admin@123`
+- Client login via phone number (8600126395)
 - Improved login UI for both client and admin
 
 ### Body Composition Tools
@@ -339,3 +369,43 @@ shared/
 - Diet plan generator with 5 diet types
 - Both export to downloadable text files
 - Validation prevents empty file downloads
+
+## Backend API Endpoints (All Functional)
+
+### Packages
+- `GET /api/packages` - List all subscription packages
+- `POST /api/packages` - Create new package
+- `PATCH /api/packages/:id` - Update package
+- `DELETE /api/packages/:id` - Delete package
+
+### Clients
+- `GET /api/clients` - List all clients
+- `GET /api/clients/:id` - Get client by ID
+- `GET /api/clients/phone/:phone` - Get client by phone number
+- `POST /api/clients` - Create new client
+- `PATCH /api/clients/:id` - Update client
+- `DELETE /api/clients/:id` - Delete client
+
+### Videos
+- `GET /api/videos` - List all videos
+- `POST /api/videos` - Upload new video
+- `PATCH /api/videos/:id` - Update video
+- `DELETE /api/videos/:id` - Delete video
+
+### Live Sessions
+- `GET /api/sessions` - List all sessions
+- `POST /api/sessions` - Schedule new session
+- `PATCH /api/sessions/:id` - Update session
+- `DELETE /api/sessions/:id` - Cancel session
+
+### Diet Plans
+- `GET /api/diet-plans/client/:clientId` - Get client's diet plans
+- `POST /api/diet-plans` - Create diet plan
+- `PATCH /api/diet-plans/:id` - Update diet plan
+- `DELETE /api/diet-plans/:id` - Delete diet plan
+
+### Workout Plans
+- `GET /api/workout-plans/client/:clientId` - Get client's workout plans
+- `POST /api/workout-plans` - Create workout plan
+- `PATCH /api/workout-plans/:id` - Update workout plan
+- `DELETE /api/workout-plans/:id` - Delete workout plan

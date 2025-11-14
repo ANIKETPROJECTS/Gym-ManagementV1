@@ -21,7 +21,7 @@ export default function ClientDiet() {
   }, [setLocation]);
 
   // Fetch diet plans for the logged-in client
-  const { data: dietPlans, isLoading } = useQuery<any[]>({
+  const { data: dietPlans, isLoading, isError } = useQuery<any[]>({
     queryKey: ['/api/diet-plans/client', clientId],
     enabled: !!clientId,
   });
@@ -58,10 +58,22 @@ export default function ClientDiet() {
             </div>
           </div>
 
-          {isLoading ? (
+          {!clientId ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Redirecting to login...
+              </CardContent>
+            </Card>
+          ) : isLoading ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 Loading your diet plan...
+              </CardContent>
+            </Card>
+          ) : isError ? (
+            <Card>
+              <CardContent className="py-8 text-center text-destructive">
+                Failed to load diet plan. Please refresh the page.
               </CardContent>
             </Card>
           ) : currentPlan ? (

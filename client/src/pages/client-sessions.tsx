@@ -2,24 +2,49 @@ import { ClientHeader } from "@/components/client-header";
 import { LiveSessionCard } from "@/components/live-session-card";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 export default function ClientSessions() {
   const [, setLocation] = useLocation();
 
-  const upcomingSessions = [
-    { id: 1, title: "Power Yoga Session", trainer: "Sarah Johnson", date: "Nov 12, 2025", time: "6:00 PM", duration: "60 min", participants: 8, maxParticipants: 15, status: "upcoming" as const },
-    { id: 2, title: "Cardio Bootcamp", trainer: "Sarah Johnson", date: "Nov 13, 2025", time: "7:30 AM", duration: "40 min", participants: 5, maxParticipants: 20, status: "upcoming" as const },
-    { id: 3, title: "Flexibility Training", trainer: "Mike Chen", date: "Nov 14, 2025", time: "8:00 PM", duration: "30 min", participants: 10, maxParticipants: 12, status: "upcoming" as const },
-  ];
+  // Fetch real sessions from backend
+  const { data: sessionsData, isLoading, isError } = useQuery<any[]>({
+    queryKey: ['/api/sessions'],
+  });
 
-  const liveSessions = [
-    { id: 4, title: "HIIT Training", trainer: "Mike Chen", date: "Nov 11, 2025", time: "7:00 PM", duration: "45 min", participants: 12, maxParticipants: 15, status: "live" as const },
-  ];
+  // Filter and format sessions by status
+  const { upcomingSessions, liveSessions, completedSessions } = useMemo(() => {
+    if (!sessionsData) return { upcomingSessions: [], liveSessions: [], completedSessions: [] };
 
-  const completedSessions = [
-    { id: 5, title: "Strength Building", trainer: "Alex Rivera", date: "Nov 10, 2025", time: "5:30 PM", duration: "50 min", participants: 14, maxParticipants: 15, status: "completed" as const },
-    { id: 6, title: "Core Workout", trainer: "Alex Rivera", date: "Nov 9, 2025", time: "6:00 PM", duration: "35 min", participants: 15, maxParticipants: 15, status: "completed" as const },
-  ];
+    const formatSession = (session: any) => {
+      const sessionDate = new Date(session.scheduledAt);
+      return {
+        id: session._id,
+        title: session.title,
+        trainer: "HOC Trainer",
+        date: sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        duration: `${session.duration} min`,
+        participants: session.participants || 0,
+        maxParticipants: session.maxParticipants || 15,
+        status: session.status,
+        meetingLink: session.meetingLink,
+      };
+    };
+
+    return {
+      upcomingSessions: sessionsData
+        .filter(s => s.status === 'upcoming')
+        .map(formatSession),
+      liveSessions: sessionsData
+        .filter(s => s.status === 'live')
+        .map(formatSession),
+      completedSessions: sessionsData
+        .filter(s => s.status === 'completed')
+        .map(formatSession),
+    };
+  }, [sessionsData]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -35,42 +60,66 @@ export default function ClientSessions() {
             </div>
           </div>
 
-          {liveSessions.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Live Now</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {liveSessions.map((session) => (
-                  <LiveSessionCard
-                    key={session.id}
-                    {...session}
-                    onJoin={() => console.log(`Joining live session: ${session.title}`)}
-                  />
-                ))}
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Loading sessions...
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 text-destructive">
+              Failed to load sessions. Please refresh the page.
+            </div>
+          ) : (
+            <>
+              {liveSessions.length > 0 && (
+                <div>
+                  <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Live Now</h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {liveSessions.map((session: any) => (
+                      <LiveSessionCard
+                        key={session.id}
+                        {...session}
+                        onJoin={() => window.open(session.meetingLink, '_blank')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Upcoming Sessions</h2>
+                {upcomingSessions.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {upcomingSessions.map((session: any) => (
+                      <LiveSessionCard
+                        key={session.id}
+                        {...session}
+                        onJoin={() => window.open(session.meetingLink, '_blank')}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No upcoming sessions scheduled
+                  </div>
+                )}
               </div>
-            </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Completed Sessions</h2>
+                {completedSessions.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {completedSessions.map((session: any) => (
+                      <LiveSessionCard key={session.id} {...session} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No completed sessions yet
+                  </div>
+                )}
+              </div>
+            </>
           )}
-
-          <div>
-            <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Upcoming Sessions</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingSessions.map((session) => (
-                <LiveSessionCard
-                  key={session.id}
-                  {...session}
-                  onJoin={() => console.log(`Reserving spot for: ${session.title}`)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-display font-bold tracking-tight mb-6">Completed Sessions</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedSessions.map((session) => (
-                <LiveSessionCard key={session.id} {...session} />
-              ))}
-            </div>
-          </div>
         </div>
       </main>
     </div>
