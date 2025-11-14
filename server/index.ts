@@ -138,8 +138,8 @@ app.use((req, res, next) => {
   // Start server
   const port = parseInt(process.env.PORT || "5000", 10);
 
-// ✅ Updated: compatible with Windows & Replit
-server.listen(port, "127.0.0.1", () => {
-  log(`🚀 Server running locally on http://127.0.0.1:${port}`);
-});
+  // Bind to 0.0.0.0 for Replit environment
+  server.listen(port, "0.0.0.0", () => {
+    log(`🚀 Server running on http://0.0.0.0:${port}`);
+  });
 })();
