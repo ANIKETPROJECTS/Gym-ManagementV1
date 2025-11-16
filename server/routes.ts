@@ -1281,6 +1281,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Communication - Messages Routes
+  app.get("/api/messages/conversations/:clientId", async (req, res) => {
+    try {
+      const conversations = await storage.getClientConversations(req.params.clientId);
+      res.json(conversations);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/messages/:conversationId", async (req, res) => {
+    try {
+      const messages = await storage.getConversationMessages(req.params.conversationId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const message = await storage.sendMessage(req.body);
+      res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/messages/:id/read", async (req, res) => {
+    try {
+      const message = await storage.markMessageAsRead(req.params.id);
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/messages/unread/:userId", async (req, res) => {
+    try {
+      const count = await storage.getUnreadMessageCount(req.params.userId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Communication - Tickets Routes
+  app.get("/api/tickets/client/:clientId", async (req, res) => {
+    try {
+      const tickets = await storage.getClientTickets(req.params.clientId);
+      res.json(tickets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/tickets/:ticketNumber", async (req, res) => {
+    try {
+      const ticket = await storage.getTicket(req.params.ticketNumber);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const ticket = await storage.createTicket(req.body);
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/tickets/:ticketNumber/responses", async (req, res) => {
+    try {
+      const ticket = await storage.addTicketResponse(req.params.ticketNumber, req.body);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/tickets/:ticketNumber/status", async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      const ticket = await storage.updateTicketStatus(req.params.ticketNumber, status);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Communication - Announcements Routes
+  app.get("/api/announcements", async (req, res) => {
+    try {
+      const targetAudience = req.query.targetAudience as string | undefined;
+      const announcements = await storage.getAllAnnouncements(targetAudience);
+      res.json(announcements);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/announcements/:id", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncement(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/announcements", async (req, res) => {
+    try {
+      const announcement = await storage.createAnnouncement(req.body);
+      res.json(announcement);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Communication - Forum Routes
+  app.get("/api/forum/topics", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const topics = await storage.getAllForumTopics(category);
+      res.json(topics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/forum/topics/:id", async (req, res) => {
+    try {
+      const topic = await storage.getForumTopic(req.params.id);
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+      res.json(topic);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/forum/topics", async (req, res) => {
+    try {
+      const topic = await storage.createForumTopic(req.body);
+      res.json(topic);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/forum/topics/:id/replies", async (req, res) => {
+    try {
+      const topic = await storage.addForumReply(req.params.id, req.body);
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+      res.json(topic);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/forum/topics/:id/views", async (req, res) => {
+    try {
+      await storage.incrementTopicViews(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/forum/topics/:id/like", async (req, res) => {
+    try {
+      const { increment } = req.body;
+      const topic = await storage.toggleTopicLike(req.params.id, increment);
+      if (!topic) {
+        return res.status(404).json({ message: "Topic not found" });
+      }
+      res.json(topic);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
