@@ -18,6 +18,7 @@ import {
   Achievement,
   Goal,
   PaymentHistory,
+  SystemSettings,
   type IPackage,
   type IClient,
   type IBodyMetrics,
@@ -36,6 +37,7 @@ import {
   type IAchievement,
   type IGoal,
   type IPaymentHistory,
+  type ISystemSettings,
 } from './models';
 import { Message, type IMessage } from './models/message';
 import { Ticket, type ITicket } from './models/ticket';
@@ -214,6 +216,11 @@ export interface IStorage {
   addForumReply(topicId: string, reply: any): Promise<IForumTopic | null>;
   incrementTopicViews(topicId: string): Promise<void>;
   toggleTopicLike(topicId: string, increment: boolean): Promise<IForumTopic | null>;
+  
+  // System Settings methods
+  getSystemSettings(): Promise<ISystemSettings>;
+  updateSystemSettings(data: Partial<ISystemSettings>): Promise<ISystemSettings>;
+  initializeSystemSettings(): Promise<ISystemSettings>;
 }
 
 export class MongoStorage implements IStorage {
@@ -1257,6 +1264,63 @@ export class MongoStorage implements IStorage {
       { $inc: { likeCount: increment ? 1 : -1 } },
       { new: true }
     );
+  }
+  
+  // System Settings methods
+  async getSystemSettings(): Promise<ISystemSettings> {
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = await this.initializeSystemSettings();
+    }
+    return settings as ISystemSettings;
+  }
+  
+  async updateSystemSettings(data: Partial<ISystemSettings>): Promise<ISystemSettings> {
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = await this.initializeSystemSettings();
+    }
+    
+    const updated = await SystemSettings.findByIdAndUpdate(
+      settings._id,
+      {
+        ...data,
+        updatedAt: new Date()
+      },
+      { new: true, upsert: true }
+    );
+    
+    return updated as ISystemSettings;
+  }
+  
+  async initializeSystemSettings(): Promise<ISystemSettings> {
+    const defaultSettings = new SystemSettings({
+      branding: {
+        gymName: 'FitPro',
+        primaryColor: '#3b82f6',
+        secondaryColor: '#8b5cf6',
+        tagline: 'Transform Your Body, Transform Your Life'
+      },
+      userRoles: [
+        {
+          roleName: 'Admin',
+          permissions: ['all'],
+          description: 'Full system access and control'
+        },
+        {
+          roleName: 'Trainer',
+          permissions: ['view_clients', 'manage_workouts', 'manage_diet', 'manage_sessions'],
+          description: 'Manage client training programs and sessions'
+        },
+        {
+          roleName: 'Receptionist',
+          permissions: ['view_clients', 'manage_clients', 'view_payments'],
+          description: 'Client management and front desk operations'
+        }
+      ]
+    });
+    
+    return await defaultSettings.save();
   }
 }
 

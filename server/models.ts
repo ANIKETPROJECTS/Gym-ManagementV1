@@ -667,6 +667,192 @@ const ClientActivitySchema = new Schema({
 ClientActivitySchema.index({ clientId: 1, timestamp: -1 });
 ClientActivitySchema.index({ timestamp: -1 });
 
+export interface ISystemSettings extends Document {
+  branding?: {
+    gymName: string;
+    logo?: string;
+    primaryColor: string;
+    secondaryColor: string;
+    tagline?: string;
+  };
+  emailTemplates?: {
+    welcome?: {
+      subject: string;
+      body: string;
+      enabled: boolean;
+    };
+    paymentReminder?: {
+      subject: string;
+      body: string;
+      enabled: boolean;
+    };
+    sessionReminder?: {
+      subject: string;
+      body: string;
+      enabled: boolean;
+    };
+    packageExpiry?: {
+      subject: string;
+      body: string;
+      enabled: boolean;
+    };
+  };
+  notificationSettings?: {
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    pushNotifications: boolean;
+    sessionReminders: boolean;
+    paymentReminders: boolean;
+    achievementNotifications: boolean;
+    reminderHoursBefore: number;
+  };
+  userRoles?: Array<{
+    roleName: string;
+    permissions: string[];
+    description?: string;
+  }>;
+  integrations?: {
+    payment?: {
+      provider: string;
+      apiKey?: string;
+      enabled: boolean;
+    };
+    email?: {
+      provider: string;
+      apiKey?: string;
+      fromEmail: string;
+      enabled: boolean;
+    };
+    sms?: {
+      provider: string;
+      apiKey?: string;
+      enabled: boolean;
+    };
+    calendar?: {
+      provider: string;
+      enabled: boolean;
+    };
+  };
+  backup?: {
+    autoBackup: boolean;
+    backupFrequency: string;
+    lastBackupDate?: Date;
+    backupLocation?: string;
+  };
+  subscription?: {
+    basic?: {
+      monthlyPrice: number;
+      yearlyPrice: number;
+      features: string[];
+    };
+    premium?: {
+      monthlyPrice: number;
+      yearlyPrice: number;
+      features: string[];
+    };
+    elite?: {
+      monthlyPrice: number;
+      yearlyPrice: number;
+      features: string[];
+    };
+  };
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+const SystemSettingsSchema = new Schema({
+  branding: {
+    gymName: { type: String, default: 'FitPro' },
+    logo: String,
+    primaryColor: { type: String, default: '#3b82f6' },
+    secondaryColor: { type: String, default: '#8b5cf6' },
+    tagline: String,
+  },
+  emailTemplates: {
+    welcome: {
+      subject: { type: String, default: 'Welcome to {{gymName}}!' },
+      body: { type: String, default: 'Hi {{clientName}}, Welcome to our gym family!' },
+      enabled: { type: Boolean, default: true },
+    },
+    paymentReminder: {
+      subject: { type: String, default: 'Payment Reminder - {{gymName}}' },
+      body: { type: String, default: 'Hi {{clientName}}, Your payment of {{amount}} is due on {{dueDate}}.' },
+      enabled: { type: Boolean, default: true },
+    },
+    sessionReminder: {
+      subject: { type: String, default: 'Upcoming Session Reminder' },
+      body: { type: String, default: 'Hi {{clientName}}, Your session "{{sessionName}}" is scheduled for {{sessionDate}}.' },
+      enabled: { type: Boolean, default: true },
+    },
+    packageExpiry: {
+      subject: { type: String, default: 'Package Expiring Soon' },
+      body: { type: String, default: 'Hi {{clientName}}, Your {{packageName}} package expires on {{expiryDate}}.' },
+      enabled: { type: Boolean, default: true },
+    },
+  },
+  notificationSettings: {
+    emailNotifications: { type: Boolean, default: true },
+    smsNotifications: { type: Boolean, default: false },
+    pushNotifications: { type: Boolean, default: true },
+    sessionReminders: { type: Boolean, default: true },
+    paymentReminders: { type: Boolean, default: true },
+    achievementNotifications: { type: Boolean, default: true },
+    reminderHoursBefore: { type: Number, default: 24 },
+  },
+  userRoles: [{
+    roleName: String,
+    permissions: [String],
+    description: String,
+  }],
+  integrations: {
+    payment: {
+      provider: { type: String, default: 'stripe' },
+      apiKey: String,
+      enabled: { type: Boolean, default: false },
+    },
+    email: {
+      provider: { type: String, default: 'sendgrid' },
+      apiKey: String,
+      fromEmail: String,
+      enabled: { type: Boolean, default: false },
+    },
+    sms: {
+      provider: { type: String, default: 'twilio' },
+      apiKey: String,
+      enabled: { type: Boolean, default: false },
+    },
+    calendar: {
+      provider: { type: String, default: 'google' },
+      enabled: { type: Boolean, default: false },
+    },
+  },
+  backup: {
+    autoBackup: { type: Boolean, default: false },
+    backupFrequency: { type: String, default: 'weekly' },
+    lastBackupDate: Date,
+    backupLocation: String,
+  },
+  subscription: {
+    basic: {
+      monthlyPrice: { type: Number, default: 999 },
+      yearlyPrice: { type: Number, default: 9999 },
+      features: { type: [String], default: ['Basic workout plans', '2 live sessions/month', 'Video library access'] },
+    },
+    premium: {
+      monthlyPrice: { type: Number, default: 1999 },
+      yearlyPrice: { type: Number, default: 19999 },
+      features: { type: [String], default: ['Custom workout plans', '8 live sessions/month', 'Diet plans', 'Priority support'] },
+    },
+    elite: {
+      monthlyPrice: { type: Number, default: 3999 },
+      yearlyPrice: { type: Number, default: 39999 },
+      features: { type: [String], default: ['Personalized training', 'Unlimited sessions', 'Custom diet plans', '24/7 support'] },
+    },
+  },
+  updatedAt: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now },
+});
+
 export const Package = mongoose.model<IPackage>('Package', PackageSchema);
 export const Client = mongoose.model<IClient>('Client', ClientSchema);
 export const BodyMetrics = mongoose.model<IBodyMetrics>('BodyMetrics', BodyMetricsSchema);
@@ -689,3 +875,4 @@ export const Invoice = mongoose.model<IInvoice>('Invoice', InvoiceSchema);
 export const Refund = mongoose.model<IRefund>('Refund', RefundSchema);
 export const PaymentReminder = mongoose.model<IPaymentReminder>('PaymentReminder', PaymentReminderSchema);
 export const ClientActivity = mongoose.model<IClientActivity>('ClientActivity', ClientActivitySchema);
+export const SystemSettings = mongoose.model<ISystemSettings>('SystemSettings', SystemSettingsSchema);

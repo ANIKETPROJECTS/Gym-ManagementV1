@@ -15,6 +15,7 @@ import AdminSessions from "@/pages/admin-sessions";
 import AdminAnalyticsEnhanced from "@/pages/admin-analytics-enhanced";
 import AdminRevenueEnhanced from "@/pages/admin-revenue-enhanced";
 import AdminAnalyticsReports from "@/pages/admin-analytics-reports";
+import AdminSettings from "@/pages/admin-settings";
 import ClientDashboard from "@/pages/client-dashboard";
 import ClientWorkouts from "@/pages/client-workouts";
 import ClientVideos from "@/pages/client-videos";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/admin/analytics" component={AdminAnalyticsEnhanced} />
       <Route path="/admin/reports" component={AdminAnalyticsReports} />
       <Route path="/admin/revenue" component={AdminRevenueEnhanced} />
+      <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/client" component={ClientDashboard} />
       <Route path="/client/workouts" component={ClientWorkouts} />
       <Route path="/client/videos" component={ClientVideos} />

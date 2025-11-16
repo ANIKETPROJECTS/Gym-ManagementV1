@@ -2754,6 +2754,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Settings routes
+  app.get("/api/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.put("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.updateSystemSettings(req.body);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/settings/initialize", async (_req, res) => {
+    try {
+      const settings = await storage.initializeSystemSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/settings/backup", async (_req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      const timestamp = new Date().toISOString().split('T')[0];
+      const backupData = {
+        backupDate: new Date(),
+        settings,
+        clients: await storage.getAllClients(),
+        packages: await storage.getAllPackages(),
+      };
+      
+      await storage.updateSystemSettings({
+        backup: {
+          ...settings.backup,
+          lastBackupDate: new Date(),
+        }
+      });
+      
+      res.json({ 
+        message: "Backup created successfully", 
+        filename: `fitpro-backup-${timestamp}.json`,
+        data: backupData
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
