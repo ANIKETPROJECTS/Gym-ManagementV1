@@ -7,6 +7,7 @@ import {
   ClientVideo,
   WorkoutPlan,
   DietPlan,
+  Meal,
   LiveSession,
   SessionClient,
   WorkoutSession,
@@ -23,6 +24,7 @@ import {
   type IClientVideo,
   type IWorkoutPlan,
   type IDietPlan,
+  type IMeal,
   type ILiveSession,
   type ISessionClient,
   type IWorkoutSession,
@@ -111,6 +113,16 @@ export interface IStorage {
   createDietPlan(data: Partial<IDietPlan>): Promise<IDietPlan>;
   updateDietPlan(id: string, data: Partial<IDietPlan>): Promise<IDietPlan | null>;
   deleteDietPlan(id: string): Promise<boolean>;
+  getDietPlanTemplates(category?: string): Promise<IDietPlan[]>;
+  cloneDietPlan(planId: string, clientId?: string): Promise<IDietPlan>;
+  getAllDietPlansWithAssignments(): Promise<any[]>;
+  
+  // Meal methods
+  getAllMeals(filters?: { category?: string; mealType?: string; search?: string }): Promise<IMeal[]>;
+  getMeal(id: string): Promise<IMeal | null>;
+  createMeal(data: Partial<IMeal>): Promise<IMeal>;
+  updateMeal(id: string, data: Partial<IMeal>): Promise<IMeal | null>;
+  deleteMeal(id: string): Promise<boolean>;
   
   // Live Session methods
   getAllSessions(): Promise<ILiveSession[]>;
@@ -515,6 +527,90 @@ export class MongoStorage implements IStorage {
 
   async deleteDietPlan(id: string): Promise<boolean> {
     const result = await DietPlan.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  async getDietPlanTemplates(category?: string): Promise<IDietPlan[]> {
+    const query: any = { isTemplate: true };
+    if (category) {
+      query.category = category;
+    }
+    return await DietPlan.find(query).sort({ createdAt: -1 });
+  }
+
+  async cloneDietPlan(planId: string, clientId?: string): Promise<IDietPlan> {
+    const originalPlan = await DietPlan.findById(planId);
+    if (!originalPlan) {
+      throw new Error('Diet plan not found');
+    }
+    
+    const clonedPlan = new DietPlan({
+      clientId: clientId || undefined,
+      name: clientId ? originalPlan.name : `${originalPlan.name} (Copy)`,
+      description: originalPlan.description,
+      category: originalPlan.category,
+      targetCalories: originalPlan.targetCalories,
+      protein: originalPlan.protein,
+      carbs: originalPlan.carbs,
+      fats: originalPlan.fats,
+      meals: originalPlan.meals,
+      allergens: originalPlan.allergens,
+      waterIntakeGoal: originalPlan.waterIntakeGoal,
+      supplements: originalPlan.supplements,
+      isTemplate: clientId ? false : originalPlan.isTemplate,
+      createdBy: originalPlan.createdBy,
+    });
+    
+    if (originalPlan.isTemplate) {
+      await DietPlan.findByIdAndUpdate(planId, { $inc: { assignedCount: 1 } });
+    }
+    
+    return await clonedPlan.save();
+  }
+
+  async getAllDietPlansWithAssignments(): Promise<any[]> {
+    const plans = await DietPlan.find().populate('clientId');
+    return plans;
+  }
+
+  // Meal methods
+  async getAllMeals(filters?: { category?: string; mealType?: string; search?: string }): Promise<IMeal[]> {
+    const query: any = {};
+    
+    if (filters?.category) {
+      query.category = filters.category;
+    }
+    
+    if (filters?.mealType) {
+      query.mealType = filters.mealType;
+    }
+    
+    if (filters?.search) {
+      query.$or = [
+        { name: { $regex: filters.search, $options: 'i' } },
+        { tags: { $in: [new RegExp(filters.search, 'i')] } }
+      ];
+    }
+    
+    return await Meal.find(query).sort({ createdAt: -1 });
+  }
+
+  async getMeal(id: string): Promise<IMeal | null> {
+    return await Meal.findById(id);
+  }
+
+  async createMeal(data: Partial<IMeal>): Promise<IMeal> {
+    const meal = new Meal(data);
+    return await meal.save();
+  }
+
+  async updateMeal(id: string, data: Partial<IMeal>): Promise<IMeal | null> {
+    data.updatedAt = new Date();
+    return await Meal.findByIdAndUpdate(id, data, { new: true });
+  }
+
+  async deleteMeal(id: string): Promise<boolean> {
+    const result = await Meal.findByIdAndDelete(id);
     return !!result;
   }
 
