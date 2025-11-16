@@ -29,6 +29,9 @@ export interface IClient extends Document {
   fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
   limitations?: string;
   language?: 'en' | 'hi';
+  status?: 'active' | 'inactive' | 'pending';
+  adminNotes?: string;
+  lastActivityDate?: Date;
   notificationPreferences?: {
     email: boolean;
     sessionReminders: boolean;
@@ -199,6 +202,9 @@ const ClientSchema = new Schema({
   fitnessLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
   limitations: String,
   language: { type: String, enum: ['en', 'hi'], default: 'en' },
+  status: { type: String, enum: ['active', 'inactive', 'pending'], default: 'active' },
+  adminNotes: String,
+  lastActivityDate: Date,
   notificationPreferences: {
     email: { type: Boolean, default: true },
     sessionReminders: { type: Boolean, default: true },

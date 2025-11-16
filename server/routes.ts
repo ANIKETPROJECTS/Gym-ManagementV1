@@ -167,6 +167,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Client Management routes
+  app.get("/api/admin/clients/search", async (req, res) => {
+    try {
+      const { query, status, packageId, sortBy } = req.query;
+      const clients = await storage.getAllClients();
+      
+      let filtered = clients;
+      
+      if (query) {
+        const searchQuery = query.toString().toLowerCase();
+        filtered = filtered.filter(client => 
+          client.name.toLowerCase().includes(searchQuery) ||
+          client.phone.includes(searchQuery) ||
+          (client.email && client.email.toLowerCase().includes(searchQuery))
+        );
+      }
+      
+      if (status) {
+        filtered = filtered.filter(client => client.status === status);
+      }
+      
+      if (packageId) {
+        filtered = filtered.filter(client => client.packageId?.toString() === packageId);
+      }
+      
+      if (sortBy === 'name') {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortBy === 'joinDate') {
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else if (sortBy === 'lastActivity') {
+        filtered.sort((a, b) => {
+          const dateA = a.lastActivityDate ? new Date(a.lastActivityDate).getTime() : 0;
+          const dateB = b.lastActivityDate ? new Date(b.lastActivityDate).getTime() : 0;
+          return dateB - dateA;
+        });
+      }
+      
+      res.json(filtered);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/clients/:id/activity", async (req, res) => {
+    try {
+      const clientId = req.params.id;
+      
+      const workoutSessions = await storage.getClientWorkoutSessions(clientId);
+      const liveSessions = await storage.getClientSessions(clientId);
+      const workoutPlans = await storage.getClientWorkoutPlans(clientId);
+      const dietPlans = await storage.getClientDietPlans(clientId);
+      
+      const activity = {
+        totalWorkouts: workoutSessions.length,
+        totalLiveSessions: liveSessions.length,
+        assignedWorkoutPlans: workoutPlans.length,
+        assignedDietPlans: dietPlans.length,
+        recentWorkouts: workoutSessions.slice(0, 10),
+        recentSessions: liveSessions.slice(0, 5),
+      };
+      
+      res.json(activity);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/clients/bulk-update", async (req, res) => {
+    try {
+      const { clientIds, updates } = req.body;
+      
+      if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
+        return res.status(400).json({ message: "Client IDs are required" });
+      }
+      
+      const updatedClients = [];
+      for (const clientId of clientIds) {
+        const client = await storage.updateClient(clientId, updates);
+        if (client) {
+          updatedClients.push(client);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        updated: updatedClients.length,
+        clients: updatedClients 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/clients/bulk-assign-plan", async (req, res) => {
+    try {
+      const { clientIds, planType, planId } = req.body;
+      
+      if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
+        return res.status(400).json({ message: "Client IDs are required" });
+      }
+      
+      if (planType === 'workout') {
+        const plan = await storage.getWorkoutPlan(planId);
+        if (!plan) {
+          return res.status(404).json({ message: "Workout plan not found" });
+        }
+        
+        const assignments = [];
+        for (const clientId of clientIds) {
+          const newPlan = await storage.createWorkoutPlan({
+            clientId,
+            name: plan.name,
+            description: plan.description,
+            goal: plan.goal,
+            durationWeeks: plan.durationWeeks,
+            exercises: plan.exercises,
+          });
+          assignments.push(newPlan);
+        }
+        
+        res.json({ success: true, assignments: assignments.length });
+      } else if (planType === 'diet') {
+        const plan = await storage.getDietPlan(planId);
+        if (!plan) {
+          return res.status(404).json({ message: "Diet plan not found" });
+        }
+        
+        const assignments = [];
+        for (const clientId of clientIds) {
+          const newPlan = await storage.createDietPlan({
+            clientId,
+            name: plan.name,
+            targetCalories: plan.targetCalories,
+            protein: plan.protein,
+            carbs: plan.carbs,
+            fats: plan.fats,
+            meals: plan.meals,
+          });
+          assignments.push(newPlan);
+        }
+        
+        res.json({ success: true, assignments: assignments.length });
+      } else {
+        res.status(400).json({ message: "Invalid plan type" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/clients/export", async (_req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      const packages = await storage.getAllPackages();
+      
+      const packageMap = packages.reduce((map, pkg) => {
+        map[pkg._id.toString()] = pkg.name;
+        return map;
+      }, {} as Record<string, string>);
+      
+      const csvHeader = 'ID,Name,Phone,Email,Package,Status,Join Date,Last Activity\n';
+      const csvRows = clients.map(client => {
+        let packageId = null;
+        if (client.packageId) {
+          if (typeof client.packageId === 'object' && '_id' in client.packageId) {
+            packageId = String((client.packageId as any)._id);
+          } else if (typeof client.packageId === 'object') {
+            packageId = client.packageId.toString();
+          } else {
+            packageId = String(client.packageId);
+          }
+        }
+        const packageName = packageId ? packageMap[packageId] || '' : '';
+        
+        return [
+          client._id,
+          client.name,
+          client.phone,
+          client.email || '',
+          packageName,
+          client.status || 'active',
+          new Date(client.createdAt).toLocaleDateString(),
+          client.lastActivityDate ? new Date(client.lastActivityDate).toLocaleDateString() : 'Never',
+        ].map(field => `"${field}"`).join(',');
+      }).join('\n');
+      
+      const csv = csvHeader + csvRows;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=clients.csv');
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Payment History routes
   app.get("/api/payment-history/:clientId", async (req, res) => {
     try {
