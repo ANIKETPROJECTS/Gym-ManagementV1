@@ -45,6 +45,15 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               </Button>
               <Button 
                 variant="ghost" 
+                className={currentPage === 'diet' ? 'bg-accent' : ''} 
+                onClick={() => setLocation("/client/diet")} 
+                data-testid="link-diet"
+              >
+                <UtensilsCrossed className="h-4 w-4 mr-2" />
+                Diet & Nutrition
+              </Button>
+              <Button 
+                variant="ghost" 
                 className={currentPage === 'workout-history' ? 'bg-accent' : ''} 
                 onClick={() => setLocation("/client/workout-history")} 
                 data-testid="link-workout-history"
