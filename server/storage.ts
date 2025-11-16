@@ -723,7 +723,7 @@ export class MongoStorage implements IStorage {
             ...baseData,
             scheduledAt: new Date(currentDate),
             isRecurring: false,
-            parentSessionId: parentSession._id.toString(),
+            parentSessionId: String(parentSession._id),
           });
           sessions.push(childSession);
         }

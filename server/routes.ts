@@ -996,6 +996,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Session Management routes
+  app.get("/api/sessions/calendar/:start/:end", async (req, res) => {
+    try {
+      const startDate = new Date(req.params.start);
+      const endDate = new Date(req.params.end);
+      const sessions = await storage.getSessionsByDateRange(startDate, endDate);
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/sessions/:id/cancel", async (req, res) => {
+    try {
+      const session = await storage.cancelSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/sessions/recurring", async (req, res) => {
+    try {
+      const { baseData, pattern, days, endDate } = req.body;
+      const sessions = await storage.createRecurringSessions(
+        baseData,
+        pattern,
+        days,
+        new Date(endDate)
+      );
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/sessions/:id/book", async (req, res) => {
+    try {
+      const { clientId } = req.body;
+      const result = await storage.bookSessionSpot(req.params.id, clientId);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Session Waitlist routes
+  app.post("/api/sessions/:id/waitlist", async (req, res) => {
+    try {
+      const { clientId } = req.body;
+      const result = await storage.addToWaitlist(req.params.id, clientId);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/sessions/:id/waitlist/:clientId", async (req, res) => {
+    try {
+      const success = await storage.removeFromWaitlist(req.params.id, req.params.clientId);
+      if (!success) {
+        return res.status(404).json({ message: "Waitlist entry not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/sessions/:id/waitlist", async (req, res) => {
+    try {
+      const waitlist = await storage.getSessionWaitlist(req.params.id);
+      res.json(waitlist);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/clients/:id/waitlist", async (req, res) => {
+    try {
+      const waitlist = await storage.getClientWaitlist(req.params.id);
+      res.json(waitlist);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Comprehensive seed endpoint for demo data
   app.post("/api/seed-demo-data", async (_req, res) => {
     try {
