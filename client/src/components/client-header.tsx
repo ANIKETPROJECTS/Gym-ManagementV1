@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationCenter } from "@/components/notification-center";
 import { CalculatorDialog } from "@/components/calculator-dialog";
-import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Home, Image } from "lucide-react";
+import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface ClientHeaderProps {
@@ -17,15 +17,15 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setLocation("/")} 
+              className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1"
+              data-testid="button-logo-home"
+            >
               <Dumbbell className="h-8 w-8 text-primary" />
               <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
-            </div>
+            </button>
             <nav className="hidden md:flex items-center gap-6">
-              <Button variant="ghost" onClick={() => setLocation("/")} data-testid="link-home">
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
               <Button 
                 variant="ghost" 
                 className={currentPage === 'dashboard' ? 'bg-accent' : ''} 
@@ -33,6 +33,15 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                 data-testid="link-dashboard"
               >
                 Dashboard
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={currentPage === 'sessions' ? 'bg-accent' : ''} 
+                onClick={() => setLocation("/client/sessions")} 
+                data-testid="link-sessions"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Sessions
               </Button>
               <Button 
                 variant="ghost" 
