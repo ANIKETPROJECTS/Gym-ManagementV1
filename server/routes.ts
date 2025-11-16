@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { PaymentHistory, Invoice, Refund, PaymentReminder } from "./models";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default packages if none exist
@@ -375,6 +376,283 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const payment = await storage.createPaymentRecord(req.body);
       res.json(payment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get all payments with filtering
+  app.get("/api/payments", async (req, res) => {
+    try {
+      const { status, startDate, endDate, packageId } = req.query;
+      const query: any = {};
+      
+      if (status) query.status = status;
+      if (packageId) query.packageId = packageId;
+      if (startDate || endDate) {
+        query.billingDate = {};
+        if (startDate) query.billingDate.$gte = new Date(startDate as string);
+        if (endDate) query.billingDate.$lte = new Date(endDate as string);
+      }
+
+      const payments = await PaymentHistory.find(query)
+        .populate('clientId', 'name phone email')
+        .populate('packageId', 'name price')
+        .sort({ billingDate: -1 });
+      
+      res.json(payments);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get payment statistics
+  app.get("/api/payments/stats", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const dateFilter: any = {};
+      
+      if (startDate || endDate) {
+        if (startDate) dateFilter.$gte = new Date(startDate as string);
+        if (endDate) dateFilter.$lte = new Date(endDate as string);
+      } else {
+        const now = new Date();
+        dateFilter.$gte = new Date(now.getFullYear(), now.getMonth(), 1);
+        dateFilter.$lte = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+
+      const payments = await PaymentHistory.find({ billingDate: dateFilter });
+      
+      const totalRevenue = payments
+        .filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + p.amount, 0);
+      
+      const pendingPayments = payments.filter(p => p.status === 'pending');
+      const overduePayments = payments.filter(p => p.status === 'overdue');
+      const completedPayments = payments.filter(p => p.status === 'completed');
+      
+      const paymentsDue = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+      const paymentsOverdue = overduePayments.reduce((sum, p) => sum + p.amount, 0);
+
+      const lastMonthStart = new Date(new Date().setMonth(new Date().getMonth() - 1));
+      const lastMonthPayments = await PaymentHistory.find({
+        billingDate: { $gte: lastMonthStart, $lt: dateFilter.$gte },
+        status: 'completed'
+      });
+      
+      const lastMonthRevenue = lastMonthPayments.reduce((sum, p) => sum + p.amount, 0);
+      const growthRate = lastMonthRevenue > 0 
+        ? ((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+
+      res.json({
+        totalRevenue,
+        paymentsDue,
+        paymentsOverdue,
+        pendingCount: pendingPayments.length,
+        overdueCount: overduePayments.length,
+        completedCount: completedPayments.length,
+        growthRate: Math.round(growthRate * 10) / 10,
+        lastMonthRevenue
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get monthly revenue trends
+  app.get("/api/payments/monthly-trends", async (req, res) => {
+    try {
+      const { months = 6 } = req.query;
+      const trends = [];
+      
+      for (let i = parseInt(months as string) - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const payments = await PaymentHistory.find({
+          billingDate: { $gte: startOfMonth, $lte: endOfMonth },
+          status: 'completed'
+        });
+        
+        const revenue = payments.reduce((sum, p) => sum + p.amount, 0);
+        const clientIds = new Set(payments.map(p => String(p.clientId)));
+        
+        trends.push({
+          month: startOfMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          revenue,
+          clientCount: clientIds.size,
+          paymentCount: payments.length
+        });
+      }
+      
+      res.json(trends);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Invoice routes
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const { status, clientId } = req.query;
+      const query: any = {};
+      
+      if (status) query.status = status;
+      if (clientId) query.clientId = clientId;
+
+      const invoices = await Invoice.find(query)
+        .populate('clientId', 'name phone email')
+        .populate('packageId', 'name price')
+        .sort({ issueDate: -1 });
+      
+      res.json(invoices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const invoiceCount = await Invoice.countDocuments();
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(5, '0')}`;
+      
+      const invoiceData = {
+        ...req.body,
+        invoiceNumber,
+        status: 'draft',
+        issueDate: req.body.issueDate || new Date(),
+      };
+      
+      const invoice = new Invoice(invoiceData);
+      await invoice.save();
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/invoices/:id", async (req, res) => {
+    try {
+      const invoice = await Invoice.findByIdAndUpdate(
+        req.params.id,
+        { ...req.body, updatedAt: new Date() },
+        { new: true }
+      );
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/invoices/:id/send", async (req, res) => {
+    try {
+      const invoice = await Invoice.findByIdAndUpdate(
+        req.params.id,
+        { 
+          status: 'sent',
+          sentAt: new Date(),
+          sentToEmail: req.body.email,
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Refund routes
+  app.get("/api/refunds", async (req, res) => {
+    try {
+      const { status, clientId } = req.query;
+      const query: any = {};
+      
+      if (status) query.status = status;
+      if (clientId) query.clientId = clientId;
+
+      const refunds = await Refund.find(query)
+        .populate('clientId', 'name phone email')
+        .populate('paymentId')
+        .sort({ requestedAt: -1 });
+      
+      res.json(refunds);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/refunds", async (req, res) => {
+    try {
+      const refund = new Refund(req.body);
+      await refund.save();
+      
+      if (req.body.processImmediately) {
+        await PaymentHistory.findByIdAndUpdate(
+          req.body.paymentId,
+          { 
+            status: 'refunded',
+            refundId: refund._id,
+            updatedAt: new Date()
+          }
+        );
+      }
+      
+      res.json(refund);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/refunds/:id", async (req, res) => {
+    try {
+      const refund = await Refund.findByIdAndUpdate(
+        req.params.id,
+        { ...req.body, updatedAt: new Date() },
+        { new: true }
+      );
+      
+      if (req.body.status === 'processed' && refund) {
+        await PaymentHistory.findByIdAndUpdate(
+          refund.paymentId,
+          { 
+            status: 'refunded',
+            refundId: refund._id,
+            updatedAt: new Date()
+          }
+        );
+      }
+      
+      res.json(refund);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Payment reminder routes
+  app.post("/api/payment-reminders", async (req, res) => {
+    try {
+      const reminder = new PaymentReminder(req.body);
+      await reminder.save();
+      res.json(reminder);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/payment-reminders/pending", async (req, res) => {
+    try {
+      const reminders = await PaymentReminder.find({
+        status: 'pending',
+        scheduledFor: { $lte: new Date() }
+      })
+        .populate('clientId', 'name phone email')
+        .populate('invoiceId');
+      
+      res.json(reminders);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

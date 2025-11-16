@@ -142,6 +142,34 @@ The system utilizes a fitness-focused Material Design aesthetic, characterized b
 - Added complete backend support with API routes and storage layer for all progress features
 - All new features use in-memory storage for demo purposes (can be migrated to MongoDB when needed)
 
+**November 16, 2025 - Revenue & Payment Management System**
+- Implemented comprehensive financial management system for admin panel with payment tracking, invoicing, refunds, and revenue analytics
+- **MongoDB Models Enhanced**:
+  - Enhanced `PaymentHistory` with dueDate, paidDate, notes, refundId, and 'overdue' status support
+  - Added `Invoice` model with invoiceNumber, items array, tax, discount, totalAmount, and payment terms
+  - Added `Refund` model with approval workflow (pending/approved/rejected/processed statuses)
+  - Added `PaymentReminder` model for automated payment notification scheduling
+- **Backend API Endpoints** (15+ routes):
+  - `/api/payments` - Full CRUD with advanced filtering by status, date range, and package
+  - `/api/payments/stats` - Calculate revenue statistics, growth rates, and payment summaries
+  - `/api/payments/monthly-trends` - Generate 6-month revenue trends with client count correlation
+  - `/api/invoices` - Complete invoice lifecycle management (create, send, update, list)
+  - `/api/refunds` - Refund workflow with reason tracking and approval process
+  - `/api/payment-reminders` - Schedule and manage payment reminder notifications
+- **Admin Revenue Dashboard Features**:
+  - **Overview Tab**: Revenue stats cards (Total Revenue, Payments Due, Overdue, Avg per Client), monthly trend graph with dual Y-axis (revenue & clients), revenue by package breakdown with progress bars
+  - **Payments Tab**: Payment history table with status filtering (All, Pending, Completed, Overdue), search functionality, and payment status badges with color coding
+  - **Invoices Tab**: Invoice generation dialog with client/package selection, auto-generated invoice numbers, itemized billing, tax/discount support, and invoice listing
+  - **Refunds Tab**: Refund management with reason selection, amount validation, approval workflow, and refund history
+  - **Export Functionality**: CSV export of all payment data with proper formatting
+- **UI/UX Features**:
+  - Recharts integration for interactive revenue trend visualizations
+  - Color-coded payment status badges (Pending: blue, Completed: green, Overdue: red)
+  - Growth rate indicators with percentage change from previous month
+  - Tabbed interface for organized access to different financial management sections
+  - Responsive card layouts with consistent spacing and elevation
+- **Route**: Admin revenue management accessible at `/admin/revenue` with sidebar navigation
+
 ## External Dependencies
 - **MongoDB Atlas**: Cloud-hosted NoSQL database for data storage.
 - **Mongoose**: Object Data Modeling (ODM) library for MongoDB.

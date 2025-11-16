@@ -488,31 +488,165 @@ export interface IPaymentHistory extends Document {
   clientId: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'overdue';
   transactionId?: string;
   invoiceNumber: string;
   paymentMethod: string;
   packageId?: string;
   packageName?: string;
   billingDate: Date;
+  dueDate?: Date;
+  paidDate?: Date;
   nextBillingDate?: Date;
   receiptUrl?: string;
+  notes?: string;
+  refundId?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const PaymentHistorySchema = new Schema({
   clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'USD' },
-  status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'completed' },
+  status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded', 'overdue'], default: 'pending' },
   transactionId: String,
-  invoiceNumber: { type: String, required: true },
+  invoiceNumber: { type: String, required: true, unique: true },
   paymentMethod: { type: String, required: true },
   packageId: { type: Schema.Types.ObjectId, ref: 'Package' },
   packageName: String,
   billingDate: { type: Date, required: true },
+  dueDate: Date,
+  paidDate: Date,
   nextBillingDate: Date,
   receiptUrl: String,
+  notes: String,
+  refundId: { type: Schema.Types.ObjectId, ref: 'Refund' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export interface IInvoice extends Document {
+  invoiceNumber: string;
+  clientId: string;
+  packageId?: string;
+  amount: number;
+  currency: string;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  issueDate: Date;
+  dueDate: Date;
+  paidDate?: Date;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  tax?: number;
+  taxRate?: number;
+  discount?: number;
+  total: number;
+  notes?: string;
+  paymentTerms?: string;
+  paymentInstructions?: string;
+  sentAt?: Date;
+  sentToEmail?: string;
+  pdfUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const InvoiceSchema = new Schema({
+  invoiceNumber: { type: String, required: true, unique: true },
+  clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+  packageId: { type: Schema.Types.ObjectId, ref: 'Package' },
+  amount: { type: Number, required: true },
+  currency: { type: String, default: 'USD' },
+  status: { type: String, enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], default: 'draft' },
+  issueDate: { type: Date, required: true },
+  dueDate: { type: Date, required: true },
+  paidDate: Date,
+  items: [{
+    description: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    unitPrice: { type: Number, required: true },
+    total: { type: Number, required: true },
+  }],
+  subtotal: { type: Number, required: true },
+  tax: Number,
+  taxRate: Number,
+  discount: Number,
+  total: { type: Number, required: true },
+  notes: String,
+  paymentTerms: String,
+  paymentInstructions: String,
+  sentAt: Date,
+  sentToEmail: String,
+  pdfUrl: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export interface IRefund extends Document {
+  paymentId: string;
+  clientId: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'processed';
+  requestedBy: string;
+  requestedAt: Date;
+  processedBy?: string;
+  processedAt?: Date;
+  refundMethod: string;
+  transactionId?: string;
+  notes?: string;
+  approvalNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const RefundSchema = new Schema({
+  paymentId: { type: Schema.Types.ObjectId, ref: 'PaymentHistory', required: true },
+  clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+  amount: { type: Number, required: true },
+  currency: { type: String, default: 'USD' },
+  reason: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'processed'], default: 'pending' },
+  requestedBy: { type: String, required: true },
+  requestedAt: { type: Date, default: Date.now },
+  processedBy: String,
+  processedAt: Date,
+  refundMethod: { type: String, required: true },
+  transactionId: String,
+  notes: String,
+  approvalNotes: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export interface IPaymentReminder extends Document {
+  clientId: string;
+  invoiceId: string;
+  type: 'due' | 'overdue' | 'reminder';
+  scheduledFor: Date;
+  sentAt?: Date;
+  status: 'pending' | 'sent' | 'failed';
+  channel: 'email' | 'sms' | 'both';
+  message: string;
+  createdAt: Date;
+}
+
+const PaymentReminderSchema = new Schema({
+  clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+  invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice', required: true },
+  type: { type: String, enum: ['due', 'overdue', 'reminder'], required: true },
+  scheduledFor: { type: Date, required: true },
+  sentAt: Date,
+  status: { type: String, enum: ['pending', 'sent', 'failed'], default: 'pending' },
+  channel: { type: String, enum: ['email', 'sms', 'both'], required: true },
+  message: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -534,3 +668,6 @@ export const ProgressPhoto = mongoose.model<IProgressPhoto>('ProgressPhoto', Pro
 export const Achievement = mongoose.model<IAchievement>('Achievement', AchievementSchema);
 export const Goal = mongoose.model<IGoal>('Goal', GoalSchema);
 export const PaymentHistory = mongoose.model<IPaymentHistory>('PaymentHistory', PaymentHistorySchema);
+export const Invoice = mongoose.model<IInvoice>('Invoice', InvoiceSchema);
+export const Refund = mongoose.model<IRefund>('Refund', RefundSchema);
+export const PaymentReminder = mongoose.model<IPaymentReminder>('PaymentReminder', PaymentReminderSchema);
