@@ -1141,10 +1141,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         yesterday.setDate(yesterday.getDate() - 1);
         
         const sessions = [
-          { title: "Power Yoga Session", description: "Energizing yoga flow", scheduledAt: tomorrow, duration: 60, status: "upcoming", meetingLink: "https://meet.example.com/yoga1" },
-          { title: "HIIT Training", description: "High intensity interval training", scheduledAt: dayAfter, duration: 45, status: "upcoming", meetingLink: "https://meet.example.com/hiit1" },
-          { title: "Strength Building", description: "Full body strength", scheduledAt: yesterday, duration: 50, status: "completed", meetingLink: "https://meet.example.com/strength1" },
-          { title: "Cardio Bootcamp", description: "Morning cardio session", scheduledAt: tomorrow, duration: 40, status: "upcoming", meetingLink: "https://meet.example.com/cardio1" },
+          { 
+            title: "Power Yoga Session", 
+            description: "Energizing yoga flow for all levels", 
+            sessionType: "Power Yoga",
+            scheduledAt: tomorrow, 
+            duration: 60, 
+            trainerName: "Sarah Johnson",
+            maxCapacity: 15,
+            currentCapacity: 0,
+            status: "upcoming", 
+            isRecurring: false,
+            meetingLink: "https://meet.example.com/yoga1" 
+          },
+          { 
+            title: "HIIT Training", 
+            description: "High intensity interval training", 
+            sessionType: "HIIT",
+            scheduledAt: dayAfter, 
+            duration: 45, 
+            trainerName: "Mike Chen",
+            maxCapacity: 12,
+            currentCapacity: 0,
+            status: "upcoming", 
+            isRecurring: false,
+            meetingLink: "https://meet.example.com/hiit1" 
+          },
+          { 
+            title: "Strength Building", 
+            description: "Full body strength workout", 
+            sessionType: "Strength Building",
+            scheduledAt: yesterday, 
+            duration: 50, 
+            trainerName: "Alex Rivera",
+            maxCapacity: 15,
+            currentCapacity: 0,
+            status: "completed", 
+            isRecurring: false,
+            meetingLink: "https://meet.example.com/strength1" 
+          },
+          { 
+            title: "Cardio Bootcamp", 
+            description: "Morning cardio session", 
+            sessionType: "Cardio Bootcamp",
+            scheduledAt: tomorrow, 
+            duration: 40, 
+            trainerName: "Sarah Johnson",
+            maxCapacity: 20,
+            currentCapacity: 0,
+            status: "upcoming", 
+            isRecurring: false,
+            meetingLink: "https://meet.example.com/cardio1" 
+          },
         ];
         
         for (const session of sessions) {
