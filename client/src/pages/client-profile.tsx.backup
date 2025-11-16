@@ -147,23 +147,23 @@ export default function ClientProfile() {
             </Avatar>
             <div className="flex-1">
               <h1 className="text-3xl font-display font-bold tracking-tight">{client.name}</h1>
-              <p className="text-muted-foreground mt-1">{t('profile.memberSince')} {new Date(client.createdAt).toLocaleDateString(currentLanguage === 'hi' ? 'hi-IN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              <p className="text-muted-foreground mt-1">Member since {new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="bg-chart-2">{client.packageId?.name || t('common.no')} {t('profile.plan')}</Badge>
-                <Badge variant="outline" className="bg-chart-3 text-white">{t('profile.active')}</Badge>
+                <Badge className="bg-chart-2">{client.packageId?.name || 'No'} Plan</Badge>
+                <Badge variant="outline" className="bg-chart-3 text-white">Active</Badge>
               </div>
             </div>
-            <Button data-testid="button-edit-profile">{t('profile.editProfile')}</Button>
+            <Button data-testid="button-edit-profile">Edit Profile</Button>
           </div>
 
           <Tabs defaultValue="personal" className="w-full">
             <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="personal">{t('tabs.personal')}</TabsTrigger>
-              <TabsTrigger value="health">{t('tabs.health')}</TabsTrigger>
-              <TabsTrigger value="subscription">{t('tabs.subscription')}</TabsTrigger>
-              <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
-              <TabsTrigger value="preferences">{t('tabs.preferences')}</TabsTrigger>
-              <TabsTrigger value="privacy">{t('tabs.privacy')}</TabsTrigger>
+              <TabsTrigger value="personal">Personal</TabsTrigger>
+              <TabsTrigger value="health">Health</TabsTrigger>
+              <TabsTrigger value="subscription">Subscription</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger value="privacy">Privacy</TabsTrigger>
             </TabsList>
 
             <TabsContent value="personal" className="space-y-6">
