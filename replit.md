@@ -40,6 +40,23 @@ The system utilizes a fitness-focused Material Design aesthetic, characterized b
 - **Responsive Design**: The application is designed to be fully responsive across various screen sizes.
 
 ## Recent Changes
+**November 16, 2025 - Goal Setting & Management System**
+- Implemented comprehensive Goal Setting & Management feature with MongoDB persistence
+- **MongoDB Model**: Created Goal model supporting weight, fitness, and nutrition goal types with milestone tracking
+- **Backend Implementation**:
+  - Full CRUD API endpoints at `/api/goals`
+  - Progress update endpoint with automatic milestone detection
+  - Storage layer methods for all goal operations
+- **Frontend Features**:
+  - Complete goal creation dialog with form validation
+  - Visual progress indicators with progress bars
+  - Milestone tracking system with achievement notifications
+  - Goal editing and deletion capabilities
+  - Real-time progress updates with cache invalidation
+  - Responsive card-based layout for goal display
+- **Navigation Integration**: Added Goals link to client header for easy access
+- **Data Model**: Goals include goalType, title, description, targetValue, currentValue, unit, targetDate, status, progress, and milestones array
+
 **November 16, 2025 - Progress Tracking System & Navigation Enhancement**
 - Implemented dropdown navigation system in client header to organize features and prevent header clutter
 - Created comprehensive progress tracking system with 7 new pages:
