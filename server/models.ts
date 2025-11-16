@@ -69,9 +69,15 @@ export interface IVideo extends Document {
   category: string;
   duration?: number;
   intensity?: string;
+  difficulty?: string;
   trainer?: string;
   packageRequirement?: string;
+  equipment?: string[];
+  views?: number;
+  completions?: number;
+  isDraft?: boolean;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface IClientVideo extends Document {
@@ -242,9 +248,15 @@ const VideoSchema = new Schema({
   category: { type: String, required: true },
   duration: Number,
   intensity: String,
+  difficulty: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },
   trainer: String,
   packageRequirement: { type: Schema.Types.ObjectId, ref: 'Package' },
+  equipment: [String],
+  views: { type: Number, default: 0 },
+  completions: { type: Number, default: 0 },
+  isDraft: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 const ClientVideoSchema = new Schema({

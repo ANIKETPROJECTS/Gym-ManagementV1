@@ -69,9 +69,13 @@ export interface IStorage {
     category?: string;
     duration?: { min?: number; max?: number };
     intensity?: string;
+    difficulty?: string;
     trainer?: string;
     search?: string;
+    isDraft?: boolean;
   }): Promise<IVideo[]>;
+  incrementVideoViews(id: string): Promise<void>;
+  incrementVideoCompletions(id: string): Promise<void>;
   
   // Client Video methods
   getClientVideos(clientId: string): Promise<IVideo[]>;
@@ -304,8 +308,10 @@ export class MongoStorage implements IStorage {
     category?: string;
     duration?: { min?: number; max?: number };
     intensity?: string;
+    difficulty?: string;
     trainer?: string;
     search?: string;
+    isDraft?: boolean;
   }): Promise<IVideo[]> {
     const query: any = {};
     
@@ -317,8 +323,16 @@ export class MongoStorage implements IStorage {
       query.intensity = filters.intensity;
     }
     
+    if (filters.difficulty) {
+      query.difficulty = filters.difficulty;
+    }
+    
     if (filters.trainer) {
       query.trainer = filters.trainer;
+    }
+    
+    if (filters.isDraft !== undefined) {
+      query.isDraft = filters.isDraft;
     }
     
     if (filters.duration) {
@@ -341,6 +355,14 @@ export class MongoStorage implements IStorage {
     return await Video.find(query).populate('packageRequirement').sort({ createdAt: -1 });
   }
 
+  async incrementVideoViews(id: string): Promise<void> {
+    await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
+  }
+
+  async incrementVideoCompletions(id: string): Promise<void> {
+    await Video.findByIdAndUpdate(id, { $inc: { completions: 1 } });
+  }
+
   // Video Progress methods
   async getVideoProgress(clientId: string, videoId: string): Promise<IVideoProgress | null> {
     return await VideoProgress.findOne({ clientId, videoId });
@@ -354,6 +376,11 @@ export class MongoStorage implements IStorage {
   ): Promise<IVideoProgress> {
     const completed = watchedDuration >= totalDuration * 0.9;
     
+    // Check if this is newly completed
+    const existing = await VideoProgress.findOne({ clientId, videoId });
+    const wasNotCompleted = !existing || !existing.completed;
+    const isNowCompleted = completed;
+    
     const progress = await VideoProgress.findOneAndUpdate(
       { clientId, videoId },
       {
@@ -364,6 +391,11 @@ export class MongoStorage implements IStorage {
       },
       { upsert: true, new: true }
     );
+    
+    // Increment completions if newly completed
+    if (wasNotCompleted && isNowCompleted) {
+      await this.incrementVideoCompletions(videoId);
+    }
     
     return progress;
   }

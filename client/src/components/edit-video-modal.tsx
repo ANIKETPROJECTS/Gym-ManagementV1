@@ -5,37 +5,72 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, X } from "lucide-react";
 
-interface UploadVideoModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface Video {
+  _id: string;
+  title: string;
+  description?: string;
+  url: string;
+  thumbnail?: string;
+  category: string;
+  duration?: number;
+  intensity?: string;
+  difficulty?: string;
+  trainer?: string;
+  equipment?: string[];
+  views?: number;
+  completions?: number;
+  isDraft?: boolean;
 }
 
-export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) {
+interface EditVideoModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  video: Video;
+}
+
+export function EditVideoModal({ open, onOpenChange, video }: EditVideoModalProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    url: "",
-    thumbnail: "",
-    category: "",
-    duration: "",
-    intensity: "",
-    difficulty: "",
-    trainer: "",
-    isDraft: false,
+    title: video.title,
+    description: video.description || "",
+    url: video.url,
+    thumbnail: video.thumbnail || "",
+    category: video.category,
+    duration: video.duration?.toString() || "",
+    intensity: video.intensity || "",
+    difficulty: video.difficulty || "",
+    trainer: video.trainer || "",
+    isDraft: video.isDraft || false,
   });
-  const [equipment, setEquipment] = useState<string[]>([]);
+  const [equipment, setEquipment] = useState<string[]>(video.equipment || []);
   const [newEquipment, setNewEquipment] = useState("");
 
-  const uploadMutation = useMutation({
+  // Reset form when video changes
+  useEffect(() => {
+    setFormData({
+      title: video.title,
+      description: video.description || "",
+      url: video.url,
+      thumbnail: video.thumbnail || "",
+      category: video.category,
+      duration: video.duration?.toString() || "",
+      intensity: video.intensity || "",
+      difficulty: video.difficulty || "",
+      trainer: video.trainer || "",
+      isDraft: video.isDraft || false,
+    });
+    setEquipment(video.equipment || []);
+  }, [video]);
+
+  const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/videos', {
+      const res = await apiRequest('PATCH', `/api/videos/${video._id}`, {
         ...data,
         duration: data.duration ? parseInt(data.duration) : undefined,
         equipment,
@@ -45,31 +80,15 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
       toast({
-        title: "Video uploaded",
-        description: formData.isDraft 
-          ? "Video saved as draft successfully."
-          : "Video published successfully.",
+        title: "Video updated",
+        description: "The video has been successfully updated.",
       });
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        url: "",
-        thumbnail: "",
-        category: "",
-        duration: "",
-        intensity: "",
-        difficulty: "",
-        trainer: "",
-        isDraft: false,
-      });
-      setEquipment([]);
       onOpenChange(false);
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to upload video. Please try again.",
+        description: "Failed to update video. Please try again.",
         variant: "destructive",
       });
     },
@@ -85,7 +104,7 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
       });
       return;
     }
-    uploadMutation.mutate(formData);
+    updateMutation.mutate(formData);
   };
 
   const addEquipment = () => {
@@ -103,26 +122,25 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Upload New Video</DialogTitle>
+          <DialogTitle className="font-display text-2xl">Edit Video</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Video Title *</Label>
+              <Label htmlFor="edit-title">Video Title *</Label>
               <Input
-                id="title"
+                id="edit-title"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                data-testid="input-video-title"
-                placeholder="e.g., Full Body Strength Training"
+                data-testid="input-edit-title"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
+              <Label htmlFor="edit-category">Category *</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger data-testid="select-category">
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger data-testid="select-edit-category">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Strength">Strength</SelectItem>
@@ -136,66 +154,60 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="edit-description">Description</Label>
             <Textarea
-              id="description"
+              id="edit-description"
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              data-testid="textarea-description"
-              placeholder="Provide detailed instructions, benefits, and what to expect from this workout..."
+              data-testid="textarea-edit-description"
+              placeholder="Provide detailed instructions and benefits of this workout..."
             />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="url">Video URL *</Label>
+              <Label htmlFor="edit-url">Video URL *</Label>
               <Input
-                id="url"
+                id="edit-url"
                 type="url"
                 required
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                data-testid="input-url"
+                data-testid="input-edit-url"
                 placeholder="https://..."
               />
-              <p className="text-xs text-muted-foreground">
-                YouTube, Vimeo, or direct video URL
-              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="thumbnail">Thumbnail URL</Label>
+              <Label htmlFor="edit-thumbnail">Thumbnail URL</Label>
               <Input
-                id="thumbnail"
+                id="edit-thumbnail"
                 type="url"
                 value={formData.thumbnail}
                 onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                data-testid="input-thumbnail"
+                data-testid="input-edit-thumbnail"
                 placeholder="https://..."
               />
-              <p className="text-xs text-muted-foreground">
-                Cover image for the video
-              </p>
             </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Label htmlFor="edit-duration">Duration (minutes)</Label>
               <Input
-                id="duration"
+                id="edit-duration"
                 type="number"
                 min="1"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                data-testid="input-duration"
+                data-testid="input-edit-duration"
                 placeholder="30"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="difficulty">Difficulty Level</Label>
+              <Label htmlFor="edit-difficulty">Difficulty Level</Label>
               <Select value={formData.difficulty} onValueChange={(value) => setFormData({ ...formData, difficulty: value })}>
-                <SelectTrigger data-testid="select-difficulty">
+                <SelectTrigger data-testid="select-edit-difficulty">
                   <SelectValue placeholder="Select level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,9 +218,9 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="intensity">Intensity</Label>
+              <Label htmlFor="edit-intensity">Intensity</Label>
               <Select value={formData.intensity} onValueChange={(value) => setFormData({ ...formData, intensity: value })}>
-                <SelectTrigger data-testid="select-intensity">
+                <SelectTrigger data-testid="select-edit-intensity">
                   <SelectValue placeholder="Select intensity" />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,12 +233,12 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="trainer">Trainer/Instructor</Label>
+            <Label htmlFor="edit-trainer">Trainer/Instructor</Label>
             <Input
-              id="trainer"
+              id="edit-trainer"
               value={formData.trainer}
               onChange={(e) => setFormData({ ...formData, trainer: e.target.value })}
-              data-testid="input-trainer"
+              data-testid="input-edit-trainer"
               placeholder="Enter trainer name"
             />
           </div>
@@ -239,15 +251,12 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
                 onChange={(e) => setNewEquipment(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEquipment())}
                 placeholder="Add equipment (press Enter)"
-                data-testid="input-equipment"
+                data-testid="input-edit-equipment"
               />
               <Button type="button" variant="outline" onClick={addEquipment} data-testid="button-add-equipment">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Add items like: dumbbells, resistance bands, yoga mat, etc.
-            </p>
             {equipment.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {equipment.map((item) => (
@@ -269,35 +278,39 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="draft"
+              id="edit-draft"
               checked={formData.isDraft}
               onCheckedChange={(checked) => setFormData({ ...formData, isDraft: checked })}
-              data-testid="switch-draft"
+              data-testid="switch-edit-draft"
             />
-            <Label htmlFor="draft" className="cursor-pointer">
+            <Label htmlFor="edit-draft" className="cursor-pointer">
               Save as Draft (unpublished)
             </Label>
           </div>
 
-          <div className="flex gap-3 pt-4 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-cancel"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={uploadMutation.isPending}
-              data-testid="button-upload"
-            >
-              {uploadMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {formData.isDraft ? "Save as Draft" : "Publish Video"}
-            </Button>
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground">
+              <div>Views: {video.views || 0}</div>
+              <div>Completions: {video.completions || 0}</div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                data-testid="button-edit-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                data-testid="button-edit-submit"
+              >
+                {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

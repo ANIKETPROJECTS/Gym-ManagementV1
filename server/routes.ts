@@ -323,18 +323,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const packages = await storage.getAllPackages();
       
       const packageMap = packages.reduce((map, pkg) => {
-        map[pkg._id.toString()] = pkg.name;
+        map[String(pkg._id)] = pkg.name;
         return map;
       }, {} as Record<string, string>);
       
       const csvHeader = 'ID,Name,Phone,Email,Package,Status,Join Date,Last Activity\n';
       const csvRows = clients.map(client => {
-        let packageId = null;
+        let packageId: string | null = null;
         if (client.packageId) {
           if (typeof client.packageId === 'object' && '_id' in client.packageId) {
             packageId = String((client.packageId as any)._id);
-          } else if (typeof client.packageId === 'object') {
-            packageId = client.packageId.toString();
           } else {
             packageId = String(client.packageId);
           }
@@ -550,15 +548,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Video Search and Filtering
   app.post("/api/videos/search", async (req, res) => {
     try {
-      const { category, duration, intensity, trainer, search } = req.body;
+      const { category, duration, intensity, difficulty, trainer, search, isDraft } = req.body;
       const videos = await storage.searchVideos({
         category,
         duration,
         intensity,
+        difficulty,
         trainer,
         search,
+        isDraft,
       });
       res.json(videos);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Video Analytics routes
+  app.post("/api/videos/:id/increment-views", async (req, res) => {
+    try {
+      await storage.incrementVideoViews(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/videos/:id/increment-completions", async (req, res) => {
+    try {
+      await storage.incrementVideoCompletions(req.params.id);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -577,6 +596,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/clients/:clientId/video-progress/:videoId", async (req, res) => {
     try {
       const { watchedDuration, totalDuration } = req.body;
+      
+      // Check if this is the first time watching (increment views)
+      const existingProgress = await storage.getVideoProgress(req.params.clientId, req.params.videoId);
+      if (!existingProgress || existingProgress.watchedDuration === 0) {
+        await storage.incrementVideoViews(req.params.videoId);
+      }
+      
       const progress = await storage.updateVideoProgress(
         req.params.clientId,
         req.params.videoId,
