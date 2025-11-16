@@ -10,9 +10,12 @@ interface Announcement {
   _id: string;
   title: string;
   content: string;
-  type: 'info' | 'important' | 'urgent';
+  category: 'general' | 'maintenance' | 'event' | 'promotion' | 'policy' | 'emergency';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  authorId: string;
+  authorName: string;
   targetAudience: 'all' | 'basic' | 'premium' | 'elite';
-  createdBy: string;
+  images?: string[];
   isPinned: boolean;
   createdAt: string;
   expiresAt?: string;
@@ -28,25 +31,36 @@ export default function AnnouncementsPage() {
   const pinnedAnnouncements = announcements?.filter(a => a.isPinned) || [];
   const regularAnnouncements = announcements?.filter(a => !a.isPinned) || [];
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
       case 'urgent':
         return <AlertCircle className="w-5 h-5 text-destructive" data-testid="icon-urgent" />;
-      case 'important':
-        return <Bell className="w-5 h-5 text-orange-500" data-testid="icon-important" />;
+      case 'high':
+        return <Bell className="w-5 h-5 text-orange-500" data-testid="icon-high" />;
       default:
-        return <Info className="w-5 h-5 text-blue-500" data-testid="icon-info" />;
+        return <Info className="w-5 h-5 text-blue-500" data-testid="icon-normal" />;
     }
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
+  const getPriorityBadgeVariant = (priority: string) => {
+    switch (priority) {
       case 'urgent':
         return 'destructive';
-      case 'important':
+      case 'high':
         return 'default';
       default:
         return 'secondary';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return t('comm.urgent');
+      case 'high':
+        return t('comm.important');
+      default:
+        return t('comm.info');
     }
   };
 
@@ -99,16 +113,14 @@ export default function AnnouncementsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1">
-                      {getTypeIcon(announcement.type)}
+                      {getPriorityIcon(announcement.priority)}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl mb-2" data-testid={`text-title-${announcement._id}`}>
                           {announcement.title}
                         </CardTitle>
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant={getTypeBadgeVariant(announcement.type)} data-testid={`badge-type-${announcement._id}`}>
-                            {announcement.type === 'urgent' ? t('comm.important') : 
-                             announcement.type === 'important' ? t('comm.important') : 
-                             t('comm.info')}
+                          <Badge variant={getPriorityBadgeVariant(announcement.priority)} data-testid={`badge-priority-${announcement._id}`}>
+                            {getPriorityLabel(announcement.priority)}
                           </Badge>
                           <Badge variant="outline" data-testid={`badge-pinned-${announcement._id}`}>
                             {t('comm.pinned')}
@@ -147,15 +159,13 @@ export default function AnnouncementsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1">
-                      {getTypeIcon(announcement.type)}
+                      {getPriorityIcon(announcement.priority)}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl mb-2" data-testid={`text-title-${announcement._id}`}>
                           {announcement.title}
                         </CardTitle>
-                        <Badge variant={getTypeBadgeVariant(announcement.type)} data-testid={`badge-type-${announcement._id}`}>
-                          {announcement.type === 'urgent' ? t('comm.important') : 
-                           announcement.type === 'important' ? t('comm.important') : 
-                           t('comm.info')}
+                        <Badge variant={getPriorityBadgeVariant(announcement.priority)} data-testid={`badge-priority-${announcement._id}`}>
+                          {getPriorityLabel(announcement.priority)}
                         </Badge>
                       </div>
                     </div>

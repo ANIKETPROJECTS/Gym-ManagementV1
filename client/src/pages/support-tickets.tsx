@@ -21,18 +21,34 @@ interface Ticket {
   _id: string;
   ticketNumber: string;
   clientId: string;
+  clientName: string;
   subject: string;
-  category: string;
-  priority: string;
+  category: 'technical' | 'billing' | 'account' | 'training' | 'general';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'in-progress' | 'waiting-response' | 'resolved' | 'closed';
   description: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  attachments?: Array<{
+    type: string;
+    url: string;
+    name: string;
+  }>;
   responses: Array<{
+    responderId: string;
+    responderName: string;
+    responderType: 'client' | 'support' | 'admin';
     message: string;
-    createdBy: string;
+    attachments?: Array<{
+      type: string;
+      url: string;
+      name: string;
+    }>;
     createdAt: string;
   }>;
+  assignedTo?: string;
+  assignedToName?: string;
   createdAt: string;
   resolvedAt?: string;
+  closedAt?: string;
 }
 
 const ticketSchema = z.object({
@@ -99,8 +115,10 @@ export default function SupportTicketsPage() {
     switch (status) {
       case 'resolved':
         return <CheckCircle2 className="w-5 h-5 text-green-500" data-testid="icon-resolved" />;
-      case 'in_progress':
+      case 'in-progress':
         return <Clock className="w-5 h-5 text-blue-500" data-testid="icon-in-progress" />;
+      case 'waiting-response':
+        return <Clock className="w-5 h-5 text-orange-500" data-testid="icon-waiting" />;
       case 'closed':
         return <CheckCircle2 className="w-5 h-5 text-muted-foreground" data-testid="icon-closed" />;
       default:
@@ -112,12 +130,31 @@ export default function SupportTicketsPage() {
     switch (status) {
       case 'resolved':
         return 'default';
-      case 'in_progress':
+      case 'in-progress':
         return 'secondary';
+      case 'waiting-response':
+        return 'outline';
       case 'closed':
         return 'outline';
       default:
         return 'destructive';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open':
+        return t('comm.statusOpen');
+      case 'in-progress':
+        return t('comm.statusInProgress');
+      case 'waiting-response':
+        return t('comm.statusWaitingResponse');
+      case 'resolved':
+        return t('comm.statusResolved');
+      case 'closed':
+        return t('comm.statusClosed');
+      default:
+        return status;
     }
   };
 
@@ -313,10 +350,7 @@ export default function SupportTicketsPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getStatusVariant(ticket.status)} data-testid={`badge-status-${ticket._id}`}>
-                      {ticket.status === 'open' ? t('comm.ticketOpen') :
-                       ticket.status === 'in_progress' ? t('comm.ticketInProgress') :
-                       ticket.status === 'resolved' ? t('comm.ticketResolved') :
-                       t('comm.ticketClosed')}
+                      {getStatusLabel(ticket.status)}
                     </Badge>
                     {getPriorityBadge(ticket.priority)}
                   </div>
