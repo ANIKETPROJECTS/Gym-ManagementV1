@@ -143,3 +143,56 @@ export const sessionClients = pgTable("session_clients", {
 export const insertSessionClientSchema = createInsertSchema(sessionClients).omit({ id: true });
 export type InsertSessionClient = z.infer<typeof insertSessionClientSchema>;
 export type SessionClient = typeof sessionClients.$inferSelect;
+
+export const weightTracking = pgTable("weight_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(),
+  date: timestamp("date").notNull().default(sql`now()`),
+});
+
+export const insertWeightTrackingSchema = createInsertSchema(weightTracking).omit({ id: true });
+export type InsertWeightTracking = z.infer<typeof insertWeightTrackingSchema>;
+export type WeightTracking = typeof weightTracking.$inferSelect;
+
+export const bodyMeasurements = pgTable("body_measurements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  chest: decimal("chest", { precision: 5, scale: 2 }),
+  waist: decimal("waist", { precision: 5, scale: 2 }),
+  hips: decimal("hips", { precision: 5, scale: 2 }),
+  leftArm: decimal("left_arm", { precision: 5, scale: 2 }),
+  rightArm: decimal("right_arm", { precision: 5, scale: 2 }),
+  leftThigh: decimal("left_thigh", { precision: 5, scale: 2 }),
+  rightThigh: decimal("right_thigh", { precision: 5, scale: 2 }),
+  neck: decimal("neck", { precision: 5, scale: 2 }),
+  shoulders: decimal("shoulders", { precision: 5, scale: 2 }),
+  date: timestamp("date").notNull().default(sql`now()`),
+});
+
+export const insertBodyMeasurementsSchema = createInsertSchema(bodyMeasurements).omit({ id: true });
+export type InsertBodyMeasurements = z.infer<typeof insertBodyMeasurementsSchema>;
+export type BodyMeasurements = typeof bodyMeasurements.$inferSelect;
+
+export const personalRecords = pgTable("personal_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  category: text("category").notNull(),
+  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
+  date: timestamp("date").notNull().default(sql`now()`),
+});
+
+export const insertPersonalRecordSchema = createInsertSchema(personalRecords).omit({ id: true });
+export type InsertPersonalRecord = z.infer<typeof insertPersonalRecordSchema>;
+export type PersonalRecord = typeof personalRecords.$inferSelect;
+
+export const weeklyWorkoutGoals = pgTable("weekly_workout_goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  plannedWorkouts: integer("planned_workouts").notNull().default(5),
+  weekStartDate: timestamp("week_start_date").notNull(),
+});
+
+export const insertWeeklyWorkoutGoalSchema = createInsertSchema(weeklyWorkoutGoals).omit({ id: true });
+export type InsertWeeklyWorkoutGoal = z.infer<typeof insertWeeklyWorkoutGoalSchema>;
+export type WeeklyWorkoutGoal = typeof weeklyWorkoutGoals.$inferSelect;

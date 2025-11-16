@@ -121,6 +121,24 @@ export interface IStorage {
   // Achievement methods
   getClientAchievements(clientId: string): Promise<IAchievement[]>;
   createAchievement(data: Partial<IAchievement>): Promise<IAchievement>;
+  
+  // Progress Tracking - Weight methods
+  getClientWeightHistory(clientId: string): Promise<any[]>;
+  createWeightEntry(clientId: string, weight: number, date: string): Promise<any>;
+  getClientWeightGoal(clientId: string): Promise<number | null>;
+  setClientWeightGoal(clientId: string, goalWeight: number): Promise<any>;
+  
+  // Progress Tracking - Body Measurements methods
+  getClientBodyMeasurementsHistory(clientId: string): Promise<any[]>;
+  createBodyMeasurement(clientId: string, measurements: any, date: string): Promise<any>;
+  
+  // Progress Tracking - Personal Records methods
+  getClientPersonalRecords(clientId: string): Promise<any[]>;
+  createPersonalRecord(clientId: string, category: string, value: number, date: string): Promise<any>;
+  
+  // Progress Tracking - Weekly Completion methods
+  getClientWeeklyCompletion(clientId: string): Promise<any>;
+  getWeeklyCompletionHistory(clientId: string): Promise<any[]>;
 }
 
 export class MongoStorage implements IStorage {
@@ -547,6 +565,104 @@ export class MongoStorage implements IStorage {
   async createAchievement(data: Partial<IAchievement>): Promise<IAchievement> {
     const achievement = new Achievement(data);
     return await achievement.save();
+  }
+  
+  // Progress Tracking - Weight methods (in-memory storage for demo)
+  private weightData = new Map<string, { entries: any[]; goal: number | null }>();
+  
+  async getClientWeightHistory(clientId: string): Promise<any[]> {
+    const data = this.weightData.get(clientId);
+    return data?.entries || [];
+  }
+  
+  async createWeightEntry(clientId: string, weight: number, date: string): Promise<any> {
+    const data = this.weightData.get(clientId) || { entries: [], goal: null };
+    const entry = { weight, date };
+    data.entries.unshift(entry);
+    this.weightData.set(clientId, data);
+    return entry;
+  }
+  
+  async getClientWeightGoal(clientId: string): Promise<number | null> {
+    const data = this.weightData.get(clientId);
+    return data?.goal || null;
+  }
+  
+  async setClientWeightGoal(clientId: string, goalWeight: number): Promise<any> {
+    const data = this.weightData.get(clientId) || { entries: [], goal: null };
+    data.goal = goalWeight;
+    this.weightData.set(clientId, data);
+    return { goal: goalWeight };
+  }
+  
+  // Progress Tracking - Body Measurements methods (in-memory)
+  private measurementsData = new Map<string, any[]>();
+  
+  async getClientBodyMeasurementsHistory(clientId: string): Promise<any[]> {
+    return this.measurementsData.get(clientId) || [];
+  }
+  
+  async createBodyMeasurement(clientId: string, measurements: any, date: string): Promise<any> {
+    const history = this.measurementsData.get(clientId) || [];
+    const entry = { ...measurements, date };
+    history.unshift(entry);
+    this.measurementsData.set(clientId, history);
+    return entry;
+  }
+  
+  // Progress Tracking - Personal Records methods (in-memory)
+  private personalRecordsData = new Map<string, any[]>();
+  
+  async getClientPersonalRecords(clientId: string): Promise<any[]> {
+    return this.personalRecordsData.get(clientId) || [];
+  }
+  
+  async createPersonalRecord(clientId: string, category: string, value: number, date: string): Promise<any> {
+    const records = this.personalRecordsData.get(clientId) || [];
+    const record = { category, value, date };
+    records.unshift(record);
+    this.personalRecordsData.set(clientId, records);
+    return record;
+  }
+  
+  // Progress Tracking - Weekly Completion methods (in-memory)
+  async getClientWeeklyCompletion(clientId: string): Promise<any> {
+    const sessions = await this.getClientWorkoutSessions(clientId);
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1));
+    const completedThisWeek = sessions.filter((s: any) => new Date(s.date) >= startOfWeek);
+    
+    return {
+      completedWorkouts: completedThisWeek.length,
+      plannedWorkouts: 5,
+      completedDays: completedThisWeek.map((s: any) => s.date),
+      average: Math.round(sessions.length / 4),
+    };
+  }
+  
+  async getWeeklyCompletionHistory(clientId: string): Promise<any[]> {
+    const sessions = await this.getClientWorkoutSessions(clientId);
+    const weeks: any[] = [];
+    
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay() + 1);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      const weekSessions = sessions.filter((s: any) => {
+        const date = new Date(s.date);
+        return date >= weekStart && date <= weekEnd;
+      });
+      
+      weeks.push({
+        startDate: weekStart.toISOString(),
+        completed: weekSessions.length,
+        planned: 5,
+      });
+    }
+    
+    return weeks;
   }
 }
 

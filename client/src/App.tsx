@@ -23,6 +23,13 @@ import ClientWorkoutHistory from "@/pages/client-workout-history";
 import ClientProgressPhotos from "@/pages/client-progress-photos";
 import ClientProfile from "@/pages/client-profile";
 import SessionRoom from "@/pages/session-room";
+import ClientWeightTracking from "@/pages/client-weight-tracking";
+import ClientBodyMeasurements from "@/pages/client-body-measurements";
+import ClientProgressCharts from "@/pages/client-progress-charts";
+import ClientAchievements from "@/pages/client-achievements";
+import ClientPersonalRecords from "@/pages/client-personal-records";
+import ClientWeeklyCompletion from "@/pages/client-weekly-completion";
+import ClientMonthlyReports from "@/pages/client-monthly-reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -48,6 +55,14 @@ function Router() {
       <Route path="/client/workout-history" component={ClientWorkoutHistory} />
       <Route path="/client/progress-photos" component={ClientProgressPhotos} />
       <Route path="/client/profile" component={ClientProfile} />
+      <Route path="/client/progress/weight-tracking" component={ClientWeightTracking} />
+      <Route path="/client/progress/body-measurements" component={ClientBodyMeasurements} />
+      <Route path="/client/progress/charts" component={ClientProgressCharts} />
+      <Route path="/client/progress/achievements" component={ClientAchievements} />
+      <Route path="/client/progress/achievement-gallery" component={ClientAchievements} />
+      <Route path="/client/progress/personal-records" component={ClientPersonalRecords} />
+      <Route path="/client/progress/weekly-completion" component={ClientWeeklyCompletion} />
+      <Route path="/client/progress/monthly-reports" component={ClientMonthlyReports} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -39,6 +39,24 @@ The system utilizes a fitness-focused Material Design aesthetic, characterized b
 - **Controlled Components**: All forms are implemented as controlled components with validation.
 - **Responsive Design**: The application is designed to be fully responsive across various screen sizes.
 
+## Recent Changes
+**November 16, 2025 - Progress Tracking System & Navigation Enhancement**
+- Implemented dropdown navigation system in client header to organize features and prevent header clutter
+- Created comprehensive progress tracking system with 7 new pages:
+  - **Weight Tracking**: Log weight entries, set goals, view progress with visual indicators
+  - **Body Measurements**: Track chest, waist, hips, arms, thighs with comparison view
+  - **Progress Charts**: Visual graphs showing weight trends, measurement changes, and performance metrics
+  - **Achievements**: Badge system with earned/locked achievements display
+  - **Personal Records**: Track best lifts, runs, and other personal bests
+  - **Weekly Completion**: View workout completion rates and streaks
+  - **Monthly Reports**: Summary reports with highlights and downloadable option
+- Organized navigation into dropdown menus:
+  - **Training**: Sessions, Workout History, Video Library
+  - **Nutrition**: Diet & Nutrition
+  - **Progress**: 8 sub-features including tracking, charts, achievements, and reports
+- Added complete backend support with API routes and storage layer for all progress features
+- All new features use in-memory storage for demo purposes (can be migrated to MongoDB when needed)
+
 ## External Dependencies
 - **MongoDB Atlas**: Cloud-hosted NoSQL database for data storage.
 - **Mongoose**: Object Data Modeling (ODM) library for MongoDB.

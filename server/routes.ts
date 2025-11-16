@@ -1021,6 +1021,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Progress Tracking - Weight
+  app.get("/api/progress/weight", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const history = await storage.getClientWeightHistory(clientId);
+      const goal = await storage.getClientWeightGoal(clientId);
+      
+      res.json({
+        current: history[0] || null,
+        start: history[history.length - 1]?.weight || history[0]?.weight || 0,
+        goal,
+        history,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/progress/weight", async (req, res) => {
+    try {
+      const clientId = req.body.clientId || 'default-client';
+      const { weight, date } = req.body;
+      const entry = await storage.createWeightEntry(clientId, weight, date);
+      res.json(entry);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/progress/goal", async (req, res) => {
+    try {
+      const clientId = req.body.clientId || 'default-client';
+      const { goalWeight } = req.body;
+      const result = await storage.setClientWeightGoal(clientId, goalWeight);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Progress Tracking - Body Measurements
+  app.get("/api/progress/measurements", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const history = await storage.getClientBodyMeasurementsHistory(clientId);
+      
+      res.json({
+        current: history[0] || {},
+        previous: history[1] || {},
+        history,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/progress/measurements", async (req, res) => {
+    try {
+      const clientId = req.body.clientId || 'default-client';
+      const { date, ...measurements } = req.body;
+      const entry = await storage.createBodyMeasurement(clientId, measurements, date);
+      res.json(entry);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Progress Tracking - Personal Records
+  app.get("/api/progress/records", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const records = await storage.getClientPersonalRecords(clientId);
+      res.json({ records });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/progress/records", async (req, res) => {
+    try {
+      const clientId = req.body.clientId || 'default-client';
+      const { category, value, date } = req.body;
+      const record = await storage.createPersonalRecord(clientId, category, value, date);
+      res.json(record);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Progress Tracking - Weekly Completion
+  app.get("/api/progress/weekly-completion", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const current = await storage.getClientWeeklyCompletion(clientId);
+      const history = await storage.getWeeklyCompletionHistory(clientId);
+      res.json({ ...current, history });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Progress Tracking - Achievements (Stats for UI)
+  app.get("/api/progress/achievements", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const sessions = await storage.getClientWorkoutSessions(clientId);
+      const achievements = await storage.getClientAchievements(clientId);
+      const weightHistory = await storage.getClientWeightHistory(clientId);
+      const goal = await storage.getClientWeightGoal(clientId);
+      
+      const currentWeight = weightHistory[0]?.weight || 0;
+      const goalReached = goal && currentWeight <= goal;
+      
+      res.json({
+        stats: {
+          totalWorkouts: sessions.length,
+          currentStreak: 0,
+          goalReached: goalReached || false,
+        },
+        unlocked: achievements.map((a: any) => a.type),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Progress Tracking - Monthly Reports
+  app.get("/api/progress/monthly-reports", async (req, res) => {
+    try {
+      const clientId = req.query.clientId as string || 'default-client';
+      const sessions = await storage.getClientWorkoutSessions(clientId);
+      const achievements = await storage.getClientAchievements(clientId);
+      const weightHistory = await storage.getClientWeightHistory(clientId);
+      const weeklyCompletion = await storage.getClientWeeklyCompletion(clientId);
+      
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthSessions = sessions.filter((s: any) => new Date(s.date) >= monthStart);
+      
+      const weightChange = weightHistory.length >= 2 
+        ? (weightHistory[0].weight - weightHistory[weightHistory.length - 1].weight).toFixed(1)
+        : null;
+      
+      res.json({
+        current: {
+          monthYear: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          totalWorkouts: monthSessions.length,
+          weightChange,
+          achievements: achievements.filter((a: any) => 
+            new Date(a.unlockedAt || a.createdAt) >= monthStart
+          ).length,
+          weeklyCompletion: weeklyCompletion.plannedWorkouts > 0
+            ? Math.round((weeklyCompletion.completedWorkouts / weeklyCompletion.plannedWorkouts) * 100)
+            : 0,
+          highlights: [
+            `Completed ${monthSessions.length} workout sessions`,
+            weightChange ? `Weight ${parseFloat(weightChange) < 0 ? 'lost' : 'gained'} ${Math.abs(parseFloat(weightChange))} kg` : 'No weight change tracked',
+          ],
+        },
+        history: [],
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

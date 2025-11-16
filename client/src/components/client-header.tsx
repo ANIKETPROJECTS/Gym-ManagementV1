@@ -3,11 +3,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationCenter } from "@/components/notification-center";
 import { CalculatorDialog } from "@/components/calculator-dialog";
 import { SessionReminders } from "@/components/session-reminders";
-import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image, ChevronDown, TrendingUp, Scale, Ruler, LineChart, Target, Award, Trophy, FileText } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface ClientHeaderProps {
-  currentPage?: 'dashboard' | 'workouts' | 'videos' | 'diet' | 'sessions' | 'history' | 'workout-history' | 'progress' | 'profile';
+  currentPage?: 'dashboard' | 'workouts' | 'videos' | 'diet' | 'sessions' | 'history' | 'workout-history' | 'progress' | 'profile' | 'weight-tracking' | 'body-measurements' | 'progress-charts' | 'weekly-completion' | 'achievements' | 'achievement-gallery' | 'personal-records' | 'monthly-reports';
 }
 
 export function ClientHeader({ currentPage }: ClientHeaderProps) {
@@ -26,7 +33,7 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               <Dumbbell className="h-8 w-8 text-primary" />
               <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
             </button>
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 className={currentPage === 'dashboard' ? 'bg-accent' : ''} 
@@ -35,51 +42,96 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               >
                 Dashboard
               </Button>
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'sessions' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/sessions")} 
-                data-testid="link-sessions"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Sessions
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'videos' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/videos")} 
-                data-testid="link-videos"
-              >
-                <Video className="h-4 w-4 mr-2" />
-                Videos
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'diet' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/diet")} 
-                data-testid="link-diet"
-              >
-                <UtensilsCrossed className="h-4 w-4 mr-2" />
-                Diet & Nutrition
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'workout-history' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/workout-history")} 
-                data-testid="link-workout-history"
-              >
-                <History className="h-4 w-4 mr-2" />
-                Workout History
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'progress' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/progress-photos")} 
-                data-testid="link-progress-photos"
-              >
-                <Image className="h-4 w-4 mr-2" />
-                Progress Photos
-              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={['sessions', 'workout-history', 'videos'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-training">
+                    <Dumbbell className="h-4 w-4 mr-2" />
+                    Training
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setLocation("/client/sessions")} data-testid="link-sessions">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Live Sessions
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/workout-history")} data-testid="link-workout-history">
+                    <History className="h-4 w-4 mr-2" />
+                    Workout History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/videos")} data-testid="link-videos">
+                    <Video className="h-4 w-4 mr-2" />
+                    Video Library
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={currentPage === 'diet' ? 'bg-accent' : ''} data-testid="dropdown-nutrition">
+                    <UtensilsCrossed className="h-4 w-4 mr-2" />
+                    Nutrition
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setLocation("/client/diet")} data-testid="link-diet">
+                    <UtensilsCrossed className="h-4 w-4 mr-2" />
+                    Diet & Meal Plans
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={['weight-tracking', 'body-measurements', 'progress-charts', 'weekly-completion', 'achievements', 'achievement-gallery', 'personal-records', 'monthly-reports', 'progress'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-progress">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Progress & Analytics
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/weight-tracking")} data-testid="link-weight-tracking">
+                    <Scale className="h-4 w-4 mr-2" />
+                    Weight Tracking
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/body-measurements")} data-testid="link-body-measurements">
+                    <Ruler className="h-4 w-4 mr-2" />
+                    Body Measurements
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/charts")} data-testid="link-progress-charts">
+                    <LineChart className="h-4 w-4 mr-2" />
+                    Progress Charts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/weekly-completion")} data-testid="link-weekly-completion">
+                    <Target className="h-4 w-4 mr-2" />
+                    Weekly Workout Completion
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/achievements")} data-testid="link-achievements">
+                    <Award className="h-4 w-4 mr-2" />
+                    Achievement System
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/achievement-gallery")} data-testid="link-achievement-gallery">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Achievement Gallery
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/personal-records")} data-testid="link-personal-records">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Personal Records
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress-photos")} data-testid="link-progress-photos">
+                    <Image className="h-4 w-4 mr-2" />
+                    Progress Photos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/progress/monthly-reports")} data-testid="link-monthly-reports">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Monthly Reports
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
           <div className="flex items-center gap-3">
