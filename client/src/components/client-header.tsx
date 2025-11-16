@@ -10,12 +10,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image, ChevronDown, TrendingUp, Scale, Ruler, LineChart, Target, Award, Trophy, FileText } from "lucide-react";
+import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image, ChevronDown, TrendingUp, Scale, Ruler, LineChart, Target, Award, Trophy, FileText, MessageSquare, TicketIcon, Bell, MessageCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/lib/language-context";
 
 interface ClientHeaderProps {
-  currentPage?: 'dashboard' | 'workouts' | 'videos' | 'diet' | 'sessions' | 'history' | 'workout-history' | 'progress' | 'profile' | 'weight-tracking' | 'body-measurements' | 'progress-charts' | 'weekly-completion' | 'achievements' | 'achievement-gallery' | 'personal-records' | 'monthly-reports' | 'goals';
+  currentPage?: 'dashboard' | 'workouts' | 'videos' | 'diet' | 'sessions' | 'history' | 'workout-history' | 'progress' | 'profile' | 'weight-tracking' | 'body-measurements' | 'progress-charts' | 'weekly-completion' | 'achievements' | 'achievement-gallery' | 'personal-records' | 'monthly-reports' | 'goals' | 'messages' | 'support-tickets' | 'announcements' | 'forum';
 }
 
 export function ClientHeader({ currentPage }: ClientHeaderProps) {
@@ -141,6 +141,34 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                   <DropdownMenuItem onClick={() => setLocation("/client/progress/monthly-reports")} data-testid="link-monthly-reports">
                     <FileText className="h-4 w-4 mr-2" />
                     {t('nav.monthlyReports')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={['messages', 'support-tickets', 'announcements', 'forum'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-communication">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {t('comm.messages')}
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setLocation("/client/messages")} data-testid="link-messages">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {t('comm.trainerMessaging')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/support-tickets")} data-testid="link-support-tickets">
+                    <TicketIcon className="h-4 w-4 mr-2" />
+                    {t('comm.supportTickets')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/announcements")} data-testid="link-announcements">
+                    <Bell className="h-4 w-4 mr-2" />
+                    {t('comm.announcements')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation("/client/forum")} data-testid="link-forum">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {t('comm.communityForum')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
