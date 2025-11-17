@@ -139,51 +139,69 @@ app.use((req, res, next) => {
         log(`👤 Created demo client: Abhijeet Singh`);
       }
       
-      // Create default admin and trainer users if they don't exist
-      // NOTE: These are DEMO credentials for development only. 
-      // In production, create users securely and change these passwords immediately.
+      // ALWAYS ensure default admin and trainer accounts exist
+      // These accounts are REQUIRED for system operation
       const adminEmail = "admin@fitpro.com";
+      const adminPassword = "Admin@123";
       const trainerEmail = "trainer@fitpro.com";
+      const trainerPassword = "Trainer@123";
       
+      // Admin Account - Create or Update
       let adminUser = await User.findOne({ email: adminEmail });
       if (!adminUser) {
-        // Use environment variable or default for demo/development
-        const adminPassword = process.env.ADMIN_PASSWORD || "Admin@123";
         const hashedAdminPassword = await hashPassword(adminPassword);
-        
         adminUser = await User.create({
           email: adminEmail,
           password: hashedAdminPassword,
           role: 'admin',
+          name: 'FitPro Admin',
         });
         log(`🔐 Created default admin user (email: ${adminEmail})`);
+      } else {
+        // Ensure password is correct
+        const hashedAdminPassword = await hashPassword(adminPassword);
+        adminUser.password = hashedAdminPassword;
+        adminUser.role = 'admin';
+        await adminUser.save();
+        log(`🔐 Verified admin user (email: ${adminEmail})`);
       }
       
+      // Trainer Account - Create or Update
       let trainerUser = await User.findOne({ email: trainerEmail });
-      let demoTrainer = null;
-      if (!trainerUser) {
-        // Create trainer profile first
+      let demoTrainer = await Trainer.findOne({ email: trainerEmail });
+      
+      // Create trainer profile if doesn't exist
+      if (!demoTrainer) {
         demoTrainer = await Trainer.create({
-          name: "John Doe",
+          name: "FitPro Trainer",
           email: trainerEmail,
           phone: "9876543210",
           specialty: "Strength & Conditioning",
-          bio: "Certified personal trainer with 5+ years experience",
+          bio: "Professional certified trainer",
           experience: 5,
           status: 'active',
         });
-        
-        // Create trainer user account
-        const trainerPassword = process.env.TRAINER_PASSWORD || "Trainer@123";
+      }
+      
+      if (!trainerUser) {
         const hashedTrainerPassword = await hashPassword(trainerPassword);
-        
         trainerUser = await User.create({
           email: trainerEmail,
           password: hashedTrainerPassword,
           role: 'trainer',
+          name: 'FitPro Trainer',
+          phone: '9876543210',
           trainerId: demoTrainer._id,
         });
         log(`🔐 Created default trainer user (email: ${trainerEmail})`);
+      } else {
+        // Ensure password is correct
+        const hashedTrainerPassword = await hashPassword(trainerPassword);
+        trainerUser.password = hashedTrainerPassword;
+        trainerUser.role = 'trainer';
+        trainerUser.trainerId = demoTrainer._id;
+        await trainerUser.save();
+        log(`🔐 Verified trainer user (email: ${trainerEmail})`);
       }
       
       // Seed videos if none exist
