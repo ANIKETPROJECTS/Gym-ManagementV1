@@ -7,96 +7,140 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Dumbbell, ArrowLeft } from "lucide-react";
+import { Dumbbell, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ClientAccess() {
   const [, setLocation] = useLocation();
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [showNameInput, setShowNameInput] = useState(false);
   const { toast } = useToast();
+  
+  // Login state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  
+  // Signup state
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
-  const checkClientMutation = useMutation({
-    mutationFn: async (phoneNumber: string) => {
-      const response = await fetch(`/api/clients/phone/${phoneNumber}`);
-      if (response.status === 404) {
-        return null;
-      }
-      if (!response.ok) {
-        throw new Error("Failed to check client");
-      }
+  const loginMutation = useMutation({
+    mutationFn: async (data: { email: string; password: string }) => {
+      const response = await apiRequest('POST', '/api/auth/login', data);
       return response.json();
     },
-    onSuccess: (client) => {
+    onSuccess: (data) => {
+      const { user, client } = data;
+      localStorage.setItem('userId', user._id);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.name);
+      
       if (client) {
         localStorage.setItem('clientId', client._id);
         localStorage.setItem('clientName', client.name);
-        toast({
-          title: `Welcome back, ${client.name}!`,
-          description: "Redirecting to your dashboard...",
-        });
-        setTimeout(() => setLocation("/client"), 500);
-      } else {
-        setShowNameInput(true);
       }
-    },
-    onError: () => {
+      
       toast({
-        title: "Error",
-        description: "Failed to verify phone number. Please try again.",
+        title: `Welcome back, ${user.name}!`,
+        description: "Redirecting to your dashboard...",
+      });
+      
+      // Redirect based on role
+      setTimeout(() => {
+        if (user.role === 'admin') {
+          setLocation("/admin");
+        } else if (user.role === 'client') {
+          setLocation("/client");
+        } else {
+          setLocation("/");
+        }
+      }, 500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },
   });
 
-  const createClientMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string }) => {
-      const response = await apiRequest('POST', '/api/clients', data);
+  const signupMutation = useMutation({
+    mutationFn: async (data: { email: string; password: string; name: string; phone: string }) => {
+      const response = await apiRequest('POST', '/api/auth/signup', data);
       return response.json();
     },
-    onSuccess: (client: any) => {
-      localStorage.setItem('clientId', client._id);
-      localStorage.setItem('clientName', client.name);
+    onSuccess: (data) => {
+      const { user, clientId } = data;
+      localStorage.setItem('userId', user._id);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userName', user.name);
+      localStorage.setItem('clientId', clientId);
+      localStorage.setItem('clientName', user.name);
+      
       toast({
         title: "Welcome to FitPro!",
         description: "Your account has been created successfully.",
       });
+      
       setTimeout(() => setLocation("/client"), 500);
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
-        title: "Error",
-        description: "Failed to create account. Please try again.",
+        title: "Signup Failed",
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     },
   });
 
-  const handlePhoneSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 10) {
+    
+    if (!loginEmail || !loginPassword) {
       toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid phone number",
+        title: "Missing Information",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
     }
-    checkClientMutation.mutate(phone);
+    
+    loginMutation.mutate({ email: loginEmail, password: loginPassword });
   };
 
-  const handleNameSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+    
+    if (!signupEmail || !signupPassword || !signupName) {
       toast({
-        title: "Name required",
-        description: "Please enter your name",
+        title: "Missing Information",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
-    createClientMutation.mutate({ name: name.trim(), phone });
+    
+    if (signupPassword.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    signupMutation.mutate({
+      email: signupEmail,
+      password: signupPassword,
+      name: signupName,
+      phone: signupPhone,
+    });
   };
 
   return (
@@ -132,85 +176,147 @@ export default function ClientAccess() {
             <div className="text-center">
               <CardTitle className="text-2xl font-display">Client Access</CardTitle>
               <CardDescription className="mt-2">
-                {showNameInput
-                  ? "Please tell us your name to get started"
-                  : "Enter your phone number to access your personalized dashboard"}
+                Sign in to access your personalized fitness dashboard
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            {!showNameInput ? (
-              <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    data-testid="input-phone"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    This will be your unique ID
-                  </p>
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={checkClientMutation.isPending}
-                  data-testid="button-continue"
-                >
-                  {checkClientMutation.isPending ? "Checking..." : "Continue"}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleNameSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Your Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    data-testid="input-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowNameInput(false);
-                      setPhone("");
-                      setName("");
-                    }}
-                    className="flex-1"
-                    data-testid="button-back"
-                  >
-                    Back
-                  </Button>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+                <TabsTrigger value="signup" data-testid="tab-signup">Sign Up</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      data-testid="input-login-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showLoginPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        data-testid="input-login-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        data-testid="button-toggle-login-password"
+                      >
+                        {showLoginPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                   <Button
                     type="submit"
-                    className="flex-1"
-                    disabled={createClientMutation.isPending}
-                    data-testid="button-create-account"
+                    className="w-full"
+                    disabled={loginMutation.isPending}
+                    data-testid="button-login-submit"
                   >
-                    {createClientMutation.isPending ? "Creating..." : "Get Started"}
+                    {loginMutation.isPending ? "Signing in..." : "Sign In"}
                   </Button>
-                </div>
-              </form>
-            )}
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <form onSubmit={handleSignupSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full Name *</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="John Doe"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      data-testid="input-signup-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email *</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      data-testid="input-signup-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Phone Number</Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="1234567890"
+                      value={signupPhone}
+                      onChange={(e) => setSignupPhone(e.target.value)}
+                      data-testid="input-signup-phone"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional - for contact purposes
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password *</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showSignupPassword ? "text" : "password"}
+                        placeholder="At least 6 characters"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        data-testid="input-signup-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        data-testid="button-toggle-signup-password"
+                      >
+                        {showSignupPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 6 characters
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={signupMutation.isPending}
+                    data-testid="button-signup-submit"
+                  >
+                    {signupMutation.isPending ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </main>
