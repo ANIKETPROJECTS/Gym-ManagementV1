@@ -25,8 +25,8 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
   return (
     <header className="border-b">
       <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <button 
               onClick={() => setLocation("/client-access")} 
               className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1"
