@@ -13,8 +13,8 @@ export interface IPackage extends Document {
 
 export interface IClient extends Document {
   name: string;
-  phone: string;
-  email?: string;
+  phone?: string;
+  email: string;
   packageId?: string;
   age?: number;
   gender?: string;
@@ -234,8 +234,8 @@ const PackageSchema = new Schema({
 
 const ClientSchema = new Schema({
   name: { type: String, required: true },
-  phone: { type: String, required: true, unique: true },
-  email: String,
+  phone: { type: String },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   packageId: { type: Schema.Types.ObjectId, ref: 'Package' },
   age: Number,
   gender: String,

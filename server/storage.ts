@@ -43,8 +43,19 @@ import { Message, type IMessage } from './models/message';
 import { Ticket, type ITicket } from './models/ticket';
 import { Announcement, type IAnnouncement } from './models/announcement';
 import { ForumTopic, type IForumTopic } from './models/forum';
+import { User, type IUser } from './models/user';
 
 export interface IStorage {
+  // User/Authentication methods
+  getUserByEmail(email: string): Promise<IUser | null>;
+  getUserById(id: string): Promise<IUser | null>;
+  createUser(data: Partial<IUser>): Promise<IUser>;
+  updateUser(id: string, data: Partial<IUser>): Promise<IUser | null>;
+  getAllUsers(role?: string): Promise<IUser[]>;
+  deleteUser(id: string): Promise<boolean>;
+  initializeDefaultUsers(): Promise<void>;
+  
+
   // Package methods
   getAllPackages(): Promise<IPackage[]>;
   getPackage(id: string): Promise<IPackage | null>;
@@ -1264,6 +1275,86 @@ export class MongoStorage implements IStorage {
       { $inc: { likeCount: increment ? 1 : -1 } },
       { new: true }
     );
+  }
+  
+  // User/Authentication methods
+  async getUserByEmail(email: string): Promise<IUser | null> {
+    return await User.findOne({ email: email.toLowerCase() });
+  }
+  
+  async getUserById(id: string): Promise<IUser | null> {
+    return await User.findById(id).populate('clientId');
+  }
+  
+  async createUser(data: Partial<IUser>): Promise<IUser> {
+    const user = new User({
+      ...data,
+      email: data.email?.toLowerCase(),
+    });
+    return await user.save();
+  }
+  
+  async updateUser(id: string, data: Partial<IUser>): Promise<IUser | null> {
+    const updateData = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    if (data.email) {
+      updateData.email = data.email.toLowerCase();
+    }
+    return await User.findByIdAndUpdate(id, updateData, { new: true }).populate('clientId');
+  }
+  
+  async getAllUsers(role?: string): Promise<IUser[]> {
+    const query = role ? { role } : {};
+    return await User.find(query).populate('clientId').sort({ createdAt: -1 });
+  }
+  
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await User.findByIdAndDelete(id);
+    return !!result;
+  }
+  
+  async initializeDefaultUsers(): Promise<void> {
+    const { hashPassword } = await import('./utils/auth');
+    
+    // Check if admin already exists
+    const existingAdmin = await User.findOne({ email: 'admin@gmail.com' });
+    if (!existingAdmin) {
+      const adminPassword = await hashPassword('Admin@123');
+      await this.createUser({
+        email: 'admin@gmail.com',
+        password: adminPassword,
+        role: 'admin',
+        name: 'Admin',
+      });
+    }
+    
+    // Check if client already exists
+    const existingClient = await User.findOne({ email: 'abhijeet18012001@gmail.com' });
+    if (!existingClient) {
+      // Create client in Client collection
+      const packages = await this.getAllPackages();
+      const premiumPackage = packages.find(p => p.name === 'Premium');
+      
+      const client = await this.createClient({
+        name: 'Abhijeet',
+        phone: '8600126395',
+        email: 'abhijeet18012001@gmail.com',
+        packageId: premiumPackage?._id?.toString(),
+      });
+      
+      // Create user account for client
+      const clientPassword = await hashPassword('Abhi@123');
+      await this.createUser({
+        email: 'abhijeet18012001@gmail.com',
+        password: clientPassword,
+        role: 'client',
+        name: 'Abhijeet',
+        phone: '8600126395',
+        clientId: client._id?.toString(),
+      });
+    }
   }
   
   // System Settings methods

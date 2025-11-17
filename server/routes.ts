@@ -2,8 +2,121 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { PaymentHistory, Invoice, Refund, PaymentReminder, VideoProgress, LiveSession } from "./models";
+import { hashPassword, comparePassword, validateEmail, validatePassword } from "./utils/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { email, password, name, phone } = req.body;
+      
+      // Validate input
+      if (!email || !password || !name) {
+        return res.status(400).json({ message: "Email, password, and name are required" });
+      }
+      
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Create client in Client collection
+      const packages = await storage.getAllPackages();
+      const basicPackage = packages.find(p => p.name === 'Basic');
+      
+      const client = await storage.createClient({
+        name,
+        phone: phone || '',
+        email: email.toLowerCase(),
+        packageId: basicPackage?._id?.toString(),
+      });
+      
+      // Hash password and create user
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: 'client',
+        name,
+        phone,
+        clientId: client._id?.toString(),
+      });
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user.toObject();
+      res.json({
+        message: "User created successfully",
+        user: userWithoutPassword,
+        clientId: client._id?.toString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Verify password
+      const isPasswordValid = await comparePassword(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Get client data if user is a client
+      let client = null;
+      if (user.role === 'client' && user.clientId) {
+        client = await storage.getClient(user.clientId.toString());
+      }
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user.toObject();
+      res.json({
+        message: "Login successful",
+        user: userWithoutPassword,
+        client: client,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/auth/me/:userId", async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.params.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user.toObject();
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Initialize default packages if none exist
   app.post("/api/init", async (_req, res) => {
     try {
@@ -46,22 +159,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createPackage(pkg);
         }
         
-        // Create demo client
-        const demoClientPhone = "8600126395";
-        const existingDemoClient = await storage.getClientByPhone(demoClientPhone);
+        // Initialize default users (admin and client)
+        await storage.initializeDefaultUsers();
         
-        if (!existingDemoClient) {
-          const packages = await storage.getAllPackages();
-          const premiumPackage = packages.find(p => p.name === "Premium");
-          
-          await storage.createClient({
-            name: "Abhijeet Singh",
-            phone: demoClientPhone,
-            packageId: premiumPackage?._id?.toString() || "",
-          });
-        }
-        
-        res.json({ message: "Default packages and demo client created successfully", count: defaultPackages.length });
+        res.json({ message: "Default packages and users created successfully", count: defaultPackages.length });
       } else {
         res.json({ message: "Packages already exist", count: existingPackages.length });
       }
