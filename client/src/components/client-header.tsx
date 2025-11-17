@@ -25,8 +25,8 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
   return (
     <header className="border-b">
       <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
             <button 
               onClick={() => setLocation("/client-access")} 
               className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1"
@@ -35,7 +35,7 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               <Dumbbell className="h-8 w-8 text-primary" />
               <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
             </button>
-            <nav className="hidden md:flex items-center gap-4">
+            <nav className="hidden md:flex items-center gap-4 flex-wrap">
               <Button 
                 variant="ghost" 
                 className={currentPage === 'dashboard' ? 'bg-accent' : ''} 
@@ -174,7 +174,7 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               </DropdownMenu>
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <CalculatorDialog />
             <SessionReminders />
             <NotificationCenter />
