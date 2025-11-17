@@ -6,6 +6,10 @@ import { hashPassword, comparePassword, validateEmail, validatePassword } from "
 import { generateAccessToken, generateRefreshToken } from "./utils/jwt";
 import { authenticateToken, requireAdmin, requireRole, optionalAuth, requireOwnershipOrAdmin } from "./middleware/auth";
 import { exportUserData } from "./utils/data-export";
+import { emailService } from "./utils/email";
+import crypto from "crypto";
+
+const resetTokens = new Map<string, { email: string; expiry: Date }>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -136,6 +140,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     res.json({ message: "Logged out successfully" });
+  });
+  
+  // Request password reset
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.json({ 
+          message: "If an account exists with this email, a password reset link has been sent" 
+        });
+      }
+      
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+      resetTokens.set(resetToken, { email: user.email, expiry });
+      
+      setTimeout(() => resetTokens.delete(resetToken), 60 * 60 * 1000);
+      
+      await emailService.sendPasswordResetEmail(user.email, resetToken, user.name || 'User');
+      
+      res.json({ 
+        message: "If an account exists with this email, a password reset link has been sent" 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ message: passwordValidation.message });
+      }
+      
+      const tokenData = resetTokens.get(token);
+      if (!tokenData || tokenData.expiry < new Date()) {
+        if (tokenData) resetTokens.delete(token);
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      const user = await storage.getUserByEmail(tokenData.email);
+      if (!user) {
+        resetTokens.delete(token);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(user._id.toString(), { password: hashedPassword });
+      
+      resetTokens.delete(token);
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
   
   // Get current authenticated user
@@ -844,17 +921,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send invoice (admin only - protected)
   app.post("/api/invoices/:id/send", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const invoice = await Invoice.findByIdAndUpdate(
+      const invoice = await Invoice.findById(req.params.id)
+        .populate('clientId', 'name email')
+        .populate('packageId', 'name');
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const client = invoice.clientId as any;
+      if (!client || !client.email) {
+        return res.status(400).json({ message: "Client email not found" });
+      }
+      
+      const emailSent = await emailService.sendInvoiceEmail(
+        client.email,
+        client.name,
+        invoice.invoiceNumber,
+        invoice.totalAmount,
+        invoice.dueDate,
+        client._id?.toString()
+      );
+      
+      const updatedInvoice = await Invoice.findByIdAndUpdate(
         req.params.id,
         { 
-          status: 'sent',
-          sentAt: new Date(),
-          sentToEmail: req.body.email,
+          status: emailSent ? 'sent' : 'failed',
+          sentAt: emailSent ? new Date() : undefined,
+          sentToEmail: client.email,
           updatedAt: new Date()
         },
         { new: true }
       );
-      res.json(invoice);
+      
+      res.json({
+        ...updatedInvoice?.toObject(),
+        emailSent,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

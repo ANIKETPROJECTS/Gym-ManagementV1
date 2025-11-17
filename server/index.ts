@@ -11,6 +11,7 @@ import { setupWebSocket } from "./websocket";
 import { hashPassword } from "./utils/auth";
 import { User } from "./models/user";
 import { Trainer } from "./models";
+import { startSessionReminderScheduler } from "./utils/session-reminder-scheduler";
 
 const app = express();
 
@@ -321,6 +322,8 @@ app.use((req, res, next) => {
   // Setup WebSocket for live chat
   setupWebSocket(server);
   log("🔌 WebSocket server initialized");
+
+  startSessionReminderScheduler();
 
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
