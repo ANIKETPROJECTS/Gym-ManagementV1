@@ -44,6 +44,7 @@ import { Ticket, type ITicket } from './models/ticket';
 import { Announcement, type IAnnouncement } from './models/announcement';
 import { ForumTopic, type IForumTopic } from './models/forum';
 import { User, type IUser } from './models/user';
+import { Notification, type INotification } from './models/notification';
 
 export interface IStorage {
   // User/Authentication methods
@@ -55,6 +56,14 @@ export interface IStorage {
   getAllTrainers(): Promise<IUser[]>;
   deleteUser(id: string): Promise<boolean>;
   initializeDefaultUsers(): Promise<void>;
+  
+  // Notification methods
+  createNotification(data: Partial<INotification>): Promise<INotification>;
+  getUserNotifications(userId: string): Promise<INotification[]>;
+  markNotificationAsRead(id: string): Promise<INotification | null>;
+  markAllNotificationsAsRead(userId: string): Promise<number>;
+  deleteNotification(id: string): Promise<boolean>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
   
 
   // Package methods
@@ -1417,6 +1426,41 @@ export class MongoStorage implements IStorage {
     });
     
     return await defaultSettings.save();
+  }
+
+  // Notification methods
+  async createNotification(data: Partial<INotification>): Promise<INotification> {
+    const notification = new Notification(data);
+    return await notification.save();
+  }
+
+  async getUserNotifications(userId: string): Promise<INotification[]> {
+    return await Notification.find({ userId }).sort({ createdAt: -1 }).limit(50);
+  }
+
+  async markNotificationAsRead(id: string): Promise<INotification | null> {
+    return await Notification.findByIdAndUpdate(
+      id,
+      { isRead: true },
+      { new: true }
+    );
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<number> {
+    const result = await Notification.updateMany(
+      { userId, isRead: false },
+      { isRead: true }
+    );
+    return result.modifiedCount || 0;
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const result = await Notification.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return await Notification.countDocuments({ userId, isRead: false });
   }
 }
 

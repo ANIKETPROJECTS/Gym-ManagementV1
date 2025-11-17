@@ -39,6 +39,16 @@ The system utilizes a fitness-focused Material Design aesthetic, characterized b
 - **Controlled Components**: All forms are implemented as controlled components with validation.
 - **Responsive Design**: The application is designed to be fully responsive across various screen sizes.
 
+## Email Notifications - TODO
+**Setup Required**: Email notification system for sessions, payments, and updates
+- **Email Account**: abhijeet18012001@gmail.com (configured)
+- **Technology Options**:
+  - **Option 1 (Recommended)**: Use Resend integration for transactional emails
+  - **Option 2**: Configure Gmail SMTP with app-specific password
+  - **Option 3**: Use SendGrid or another email service
+- **Note**: This is a Node.js application, not PHP. Email sending will be handled via Node.js libraries (nodemailer, resend SDK, etc.)
+- **Templates Needed**: Session reminders, payment confirmations, general updates
+
 ## Recent Changes
 **November 16, 2025 - Comprehensive Video & Workout Library Management System**
 - Enhanced admin video management system with advanced features for complete workout library control
