@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/admin-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,6 +16,7 @@ import { format, subDays } from "date-fns";
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function AdminAnalyticsReports() {
+  const style = { "--sidebar-width": "16rem" };
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: subDays(new Date(), 30),
     to: new Date()
@@ -55,13 +59,26 @@ export default function AdminAnalyticsReports() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6" data-testid="page-analytics-reports">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="heading-analytics-reports">Analytics & Reports</h1>
-          <p className="text-muted-foreground">Comprehensive insights and performance metrics</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AdminSidebar />
+        <div className="flex flex-col flex-1">
+          <header className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <h1 className="text-2xl font-display font-bold tracking-tight">Analytics & Reports</h1>
+            </div>
+            <ThemeToggle />
+          </header>
+
+          <main className="flex-1 overflow-auto p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold" data-testid="heading-analytics-reports">Comprehensive Insights</h2>
+                  <p className="text-muted-foreground">Performance metrics and detailed analytics</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" data-testid="button-date-range">
@@ -627,7 +644,11 @@ export default function AdminAnalyticsReports() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+              </Tabs>
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }

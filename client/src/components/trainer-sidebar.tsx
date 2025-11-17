@@ -1,15 +1,5 @@
-import {
-  LayoutDashboard,
-  Users,
-  Video,
-  UtensilsCrossed,
-  Calendar,
-  BarChart3,
-  DollarSign,
-  Home,
-  FileText,
-  Settings,
-} from "lucide-react";
+import { Home, Users, Video, UtensilsCrossed, Calendar, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -17,25 +7,22 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 
 const menuItems = [
-  { title: "Dashboard", icon: LayoutDashboard, url: "/admin/dashboard" },
-  { title: "Clients", icon: Users, url: "/admin/clients" },
-  { title: "Trainers", icon: Users, url: "/admin/trainers" },
-  { title: "Videos", icon: Video, url: "/admin/videos" },
-  { title: "Diet Plans", icon: UtensilsCrossed, url: "/admin/diet" },
-  { title: "Live Sessions", icon: Calendar, url: "/admin/sessions" },
-  { title: "Analytics", icon: BarChart3, url: "/admin/analytics" },
-  { title: "Reports", icon: FileText, url: "/admin/reports" },
-  { title: "Revenue", icon: DollarSign, url: "/admin/revenue" },
-  { title: "Settings", icon: Settings, url: "/admin/settings" },
+  { title: "Dashboard", icon: Home, url: "/trainer/dashboard" },
+  { title: "My Clients", icon: Users, url: "/trainer/clients" },
+  { title: "Live Sessions", icon: Calendar, url: "/trainer/sessions" },
+  { title: "Workout Plans", icon: UtensilsCrossed, url: "/trainer/workouts" },
+  { title: "Diet Plans", icon: UtensilsCrossed, url: "/trainer/diet" },
+  { title: "Video Library", icon: Video, url: "/trainer/videos" },
+  { title: "My Analytics", icon: BarChart3, url: "/trainer/analytics" },
 ];
 
-export function AdminSidebar() {
+export function TrainerSidebar() {
   const [location] = useLocation();
 
   return (
@@ -43,13 +30,13 @@ export function AdminSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="font-display text-lg">
-            FitPro Admin
+            FitPro Trainer
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild data-testid="link-home">
-                  <Link href="/admin/dashboard">
+                  <Link href="/">
                     <Home />
                     <span>Home</span>
                   </Link>

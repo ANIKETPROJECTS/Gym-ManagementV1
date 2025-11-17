@@ -102,6 +102,16 @@ export default function ClientGoals() {
 
   const { data: goals, isLoading } = useQuery<Goal[]>({
     queryKey: ['/api/goals', clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const res = await fetch(`/api/goals?clientId=${clientId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      return await res.json();
+    },
     enabled: !!clientId,
   });
 

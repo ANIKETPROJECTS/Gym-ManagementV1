@@ -1,5 +1,5 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/admin-sidebar";
+import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Calendar, Video, Users } from "lucide-react";
@@ -12,7 +12,7 @@ export default function TrainerDashboard() {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AdminSidebar />
+        <TrainerSidebar />
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-4">
