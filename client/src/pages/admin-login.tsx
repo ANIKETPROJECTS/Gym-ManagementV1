@@ -166,6 +166,17 @@ export default function AdminLogin() {
                   >
                     {isLoading ? "Logging in..." : "Login as Admin"}
                   </Button>
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      type="button"
+                      className="text-sm"
+                      onClick={() => setLocation("/forgot-password")}
+                      data-testid="link-forgot-password"
+                    >
+                      Forgot Password?
+                    </Button>
+                  </div>
                 </form>
               </TabsContent>
               
@@ -206,6 +217,17 @@ export default function AdminLogin() {
                   >
                     {isLoading ? "Logging in..." : "Login as Trainer"}
                   </Button>
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      type="button"
+                      className="text-sm"
+                      onClick={() => setLocation("/forgot-password")}
+                      data-testid="link-forgot-password-trainer"
+                    >
+                      Forgot Password?
+                    </Button>
+                  </div>
                 </form>
               </TabsContent>
             </Tabs>

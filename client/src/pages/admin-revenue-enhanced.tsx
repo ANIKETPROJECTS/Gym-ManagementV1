@@ -220,6 +220,29 @@ export default function AdminRevenueEnhanced() {
     },
   });
 
+  const sendInvoiceEmailMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const response = await apiRequest(`/api/invoices/${invoiceId}/send`, {
+        method: 'POST',
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      toast({
+        title: "Invoice Email Sent",
+        description: "The invoice has been sent to the client's email successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to Send Invoice",
+        description: error.message || "Could not send invoice email. Please try again.",
+      });
+    },
+  });
+
   const handleExportReport = () => {
     const csvData = payments.map(p => ({
       'Invoice Number': p.invoiceNumber,
@@ -557,6 +580,18 @@ export default function AdminRevenueEnhanced() {
                                   {invoice.status}
                                 </Badge>
                               </div>
+                              {invoice.clientId.email && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => sendInvoiceEmailMutation.mutate(invoice._id)}
+                                  disabled={sendInvoiceEmailMutation.isPending}
+                                  data-testid={`button-send-invoice-${invoice.invoiceNumber}`}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  Send Email
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>

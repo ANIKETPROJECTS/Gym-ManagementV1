@@ -59,6 +59,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clientId: client._id?.toString(),
       });
       
+      // Send welcome email (async, don't wait for it)
+      emailService.sendWelcomeEmail(email.toLowerCase(), name, user._id?.toString()).catch(err => {
+        console.error('Failed to send welcome email:', err);
+      });
+      
       // Return user data without password
       const { password: _, ...userWithoutPassword } = user.toObject();
       res.json({
@@ -155,7 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid email format" });
       }
       
-      const user = await storage.getUserByEmail(email);
+      const normalizedEmail = email.toLowerCase();
+      const user = await storage.getUserByEmail(normalizedEmail);
       if (!user) {
         return res.json({ 
           message: "If an account exists with this email, a password reset link has been sent" 
