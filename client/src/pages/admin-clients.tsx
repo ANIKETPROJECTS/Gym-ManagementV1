@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -188,20 +189,23 @@ export default function AdminClients() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <AdminSidebar />
-        <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-4">
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="flex flex-wrap items-center justify-between gap-2 p-3 sm:p-4 border-b min-h-[56px]">
+            <div className="flex items-center gap-2 sm:gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <h1 className="text-2xl font-display font-bold tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight">
                 Client Management
               </h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </header>
 
-          <main className="flex-1 overflow-auto p-8">
+          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex-1 max-w-md">
