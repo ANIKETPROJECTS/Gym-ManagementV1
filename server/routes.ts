@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate JWT tokens
       const tokenPayload = {
-        userId: user._id.toString(),
+        userId: String(user._id),
         email: user.email,
         role: user.role,
         clientId: user.clientId?.toString(),
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUser(user._id.toString(), { password: hashedPassword });
+      await storage.updateUser(String(user._id), { password: hashedPassword });
       
       resetTokens.delete(token);
       
@@ -590,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const searchQuery = query.toString().toLowerCase();
         filtered = filtered.filter(client => 
           client.name.toLowerCase().includes(searchQuery) ||
-          client.phone.includes(searchQuery) ||
+          (client.phone && client.phone.includes(searchQuery)) ||
           (client.email && client.email.toLowerCase().includes(searchQuery))
         );
       }
@@ -3311,8 +3311,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateSystemSettings({
         backup: {
-          ...settings.backup,
+          autoBackup: settings.backup?.autoBackup || false,
+          backupFrequency: settings.backup?.backupFrequency || 'weekly',
           lastBackupDate: new Date(),
+          backupLocation: settings.backup?.backupLocation,
         }
       });
       

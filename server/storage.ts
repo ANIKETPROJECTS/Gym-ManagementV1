@@ -1457,22 +1457,22 @@ export class MongoStorage implements IStorage {
   }
   
   // System Settings methods
-  async getSystemSettings(): Promise<ISystemSettings> {
+  async getSystemSettings(): Promise<any> {
     let settings = await SystemSettings.findOne();
     if (!settings) {
       settings = await this.initializeSystemSettings();
     }
-    return settings as ISystemSettings;
+    return settings;
   }
   
-  async updateSystemSettings(data: Partial<ISystemSettings>): Promise<ISystemSettings> {
+  async updateSystemSettings(data: Partial<ISystemSettings>): Promise<any> {
     let settings = await SystemSettings.findOne();
     if (!settings) {
       settings = await this.initializeSystemSettings();
     }
     
     const updated = await SystemSettings.findByIdAndUpdate(
-      settings._id,
+      settings!._id,
       {
         ...data,
         updatedAt: new Date()
@@ -1480,7 +1480,7 @@ export class MongoStorage implements IStorage {
       { new: true, upsert: true }
     );
     
-    return updated as ISystemSettings;
+    return updated;
   }
   
   async initializeSystemSettings(): Promise<ISystemSettings> {
