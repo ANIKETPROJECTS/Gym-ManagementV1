@@ -425,6 +425,40 @@ All import tasks have been successfully completed. The FitPro Management System 
 ✅ **Clean Organization** - Dropdowns vs standalone items properly arranged
 
 **STATUS:** ✅ Navigation properly arranged and optimized!
+
+## Session (2025-11-18 03:55 UTC) - Navigation Layout Restructure
+[x] 259. Restructured header into two-row layout for better organization
+[x] 260. Row 1: FitPro logo (left) + Main navigation sections (right)
+[x] 261. Row 2: Messages dropdown (left) + Icon buttons (right)
+[x] 262. Removed all icons from main navigation sections (Dashboard, Training, Nutrition, Calendar, My Goals, Progress & Analytics)
+[x] 263. Clean text-only navigation buttons in top row
+[x] 264. Icons preserved only in dropdown menus and utility buttons
+[x] 265. Screenshot verified - Clean two-row header layout displaying correctly
+[x] 266. ✅ NAVIGATION LAYOUT RESTRUCTURE COMPLETE - Professional two-tier design!
+
+**🎯 NEW HEADER LAYOUT:**
+✅ **Row 1 (Top):** FitPro Logo | Dashboard | Training ▼ | Nutrition ▼ | Calendar | My Goals | Progress & Analytics ▼
+✅ **Row 2 (Bottom):** Messages ▼ ........................... [Calculator] [Reminders] [Notifications] [Theme] [Profile]
+✅ **Clean Design** - Text-only main navigation without icons
+✅ **Better Organization** - Primary navigation separate from utility tools
+✅ **Professional Look** - Industry-standard two-tier header pattern
+
+**STATUS:** ✅ Header layout restructured with clean two-row design!
+
+## Session (2025-11-18 03:58 UTC) - Messages Navigation Repositioned
+[x] 267. Moved Messages dropdown from Row 2 to Row 1 (main navigation)
+[x] 268. Positioned Messages to the right of Progress & Analytics
+[x] 269. Row 2 now contains only icon buttons (Calculator, Reminders, Notifications, Theme, Profile)
+[x] 270. Screenshot verified - Messages properly positioned in top navigation bar
+[x] 271. ✅ MESSAGES REPOSITIONED - Final navigation layout complete!
+
+**🎯 FINAL HEADER LAYOUT:**
+✅ **Row 1:** FitPro | Dashboard | Training ▼ | Nutrition ▼ | Calendar | My Goals | Progress & Analytics ▼ | Messages ▼
+✅ **Row 2:** ............................... [Calculator] [Reminders] [Notifications] [Theme] [Profile]
+✅ **Clean text-only sections** - No icons in main navigation
+✅ **Proper two-tier structure** - Content navigation top, utility icons bottom
+
+**STATUS:** ✅ Final navigation layout complete and verified!
 [x] 229. Added "Forgot Password?" link to client login page with proper styling
 [x] 230. Verified both fixes work correctly - screenshot confirmed
 [x] 231. ✅ EMAIL FEATURES NOW FULLY OPERATIONAL!

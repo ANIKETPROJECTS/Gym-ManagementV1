@@ -24,9 +24,10 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
 
   return (
     <header className="border-b">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
+      <div className="container mx-auto px-6 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Row 1: Logo and Navigation */}
+          <div className="flex items-center justify-between gap-4">
             <button 
               onClick={() => setLocation("/client-access")} 
               className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1"
@@ -48,7 +49,6 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={['sessions', 'workout-history', 'videos'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-training">
-                    <Dumbbell className="h-4 w-4 mr-2" />
                     {t('nav.training')}
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
@@ -72,7 +72,6 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={currentPage === 'diet' ? 'bg-accent' : ''} data-testid="dropdown-nutrition">
-                    <UtensilsCrossed className="h-4 w-4 mr-2" />
                     {t('nav.nutrition')}
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
@@ -91,7 +90,6 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                 onClick={() => setLocation("/client/calendar")}
                 data-testid="link-calendar"
               >
-                <CalendarDays className="h-4 w-4 mr-2" />
                 Calendar
               </Button>
 
@@ -101,14 +99,12 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                 onClick={() => setLocation("/client/goals")}
                 data-testid="link-goals"
               >
-                <Target className="h-4 w-4 mr-2" />
                 {t('goals.title')}
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={['weight-tracking', 'body-measurements', 'progress-charts', 'weekly-completion', 'achievements', 'achievement-gallery', 'personal-records', 'monthly-reports', 'progress'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-progress">
-                    <TrendingUp className="h-4 w-4 mr-2" />
                     {t('nav.progressAnalytics')}
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
@@ -157,8 +153,7 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className={['messages', 'support-tickets', 'announcements', 'forum'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-communication">
-                    <MessageCircle className="h-4 w-4 mr-2" />
+                  <Button variant="ghost" className={['messages', 'support-tickets', 'announcements', 'forum'].includes(currentPage || '') ? 'bg-accent' : ''} data-testid="dropdown-messages">
                     {t('comm.messages')}
                     <ChevronDown className="h-4 w-4 ml-1" />
                   </Button>
@@ -184,7 +179,9 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               </DropdownMenu>
             </nav>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+
+          {/* Row 2: Icon Buttons Only */}
+          <div className="flex items-center justify-end gap-3">
             <CalculatorDialog />
             <SessionReminders />
             <NotificationBell />
