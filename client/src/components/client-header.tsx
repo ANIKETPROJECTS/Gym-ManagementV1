@@ -25,18 +25,19 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
   return (
     <header className="border-b">
       <div className="container mx-auto px-6 py-3">
-        <div className="flex flex-col gap-3">
-          {/* Row 1: Logo and Navigation */}
-          <div className="flex items-center justify-between gap-4">
-            <button 
-              onClick={() => setLocation("/client-access")} 
-              className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1"
-              data-testid="button-logo-home"
-            >
-              <Dumbbell className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
-            </button>
-            <nav className="hidden md:flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo */}
+          <button 
+            onClick={() => setLocation("/client-access")} 
+            className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1 flex-shrink-0"
+            data-testid="button-logo-home"
+          >
+            <Dumbbell className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
+          </button>
+
+          {/* Main Navigation */}
+          <nav className="hidden md:flex items-center gap-2 flex-1 justify-center">
               <Button 
                 variant="ghost" 
                 className={currentPage === 'dashboard' ? 'bg-accent' : ''} 
@@ -178,10 +179,9 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </nav>
-          </div>
 
-          {/* Row 2: Icon Buttons Only */}
-          <div className="flex items-center justify-end gap-3">
+          {/* Icon Buttons */}
+          <div className="flex items-center gap-3 flex-shrink-0">
             <CalculatorDialog />
             <SessionReminders />
             <NotificationBell />
