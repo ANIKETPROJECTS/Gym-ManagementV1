@@ -35,7 +35,7 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               <Dumbbell className="h-8 w-8 text-primary" />
               <span className="text-2xl font-display font-bold tracking-tight">FitPro</span>
             </button>
-            <nav className="hidden md:flex items-center gap-4 flex-wrap">
+            <nav className="hidden md:flex items-center gap-2 flex-wrap">
               <Button 
                 variant="ghost" 
                 className={currentPage === 'dashboard' ? 'bg-accent' : ''} 
@@ -43,26 +43,6 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                 data-testid="link-dashboard"
               >
                 {t('nav.dashboard')}
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'goals' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/goals")}
-                data-testid="link-goals"
-              >
-                <Target className="h-4 w-4 mr-2" />
-                {t('goals.title')}
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                className={currentPage === 'calendar' ? 'bg-accent' : ''} 
-                onClick={() => setLocation("/client/calendar")}
-                data-testid="link-calendar"
-              >
-                <CalendarDays className="h-4 w-4 mr-2" />
-                Calendar
               </Button>
 
               <DropdownMenu>
@@ -104,6 +84,26 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <Button 
+                variant="ghost" 
+                className={currentPage === 'calendar' ? 'bg-accent' : ''} 
+                onClick={() => setLocation("/client/calendar")}
+                data-testid="link-calendar"
+              >
+                <CalendarDays className="h-4 w-4 mr-2" />
+                Calendar
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                className={currentPage === 'goals' ? 'bg-accent' : ''} 
+                onClick={() => setLocation("/client/goals")}
+                data-testid="link-goals"
+              >
+                <Target className="h-4 w-4 mr-2" />
+                {t('goals.title')}
+              </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
