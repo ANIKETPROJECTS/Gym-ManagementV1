@@ -29,7 +29,13 @@ export class ZoomService {
   constructor() {
     this.accountId = process.env.ZOOM_ACCOUNT_ID || '';
     this.clientId = process.env.ZOOM_CLIENT_ID || '';
-    this.clientSecret = process.env.ZOOM_CLIENT_SECRET || '';
+    this.clientSecret = process.env.ZOOM_ACCOUNT_SECRET || '';
+    
+    if (this.isConfigured()) {
+      console.log('✅ Zoom service configured');
+    } else {
+      console.warn('⚠️  Zoom service not configured - missing credentials');
+    }
   }
 
   private async getAccessToken(): Promise<string> {
@@ -38,7 +44,7 @@ export class ZoomService {
     }
 
     if (!this.accountId || !this.clientId || !this.clientSecret) {
-      throw new Error('Zoom API credentials not configured. Please set ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, and ZOOM_CLIENT_SECRET environment variables.');
+      throw new Error('Zoom API credentials not configured. Please set ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, and ZOOM_ACCOUNT_SECRET environment variables.');
     }
 
     try {
@@ -57,6 +63,10 @@ export class ZoomService {
 
       this.accessToken = response.data.access_token;
       this.tokenExpiry = Date.now() + (response.data.expires_in * 1000) - 60000;
+      
+      if (!this.accessToken) {
+        throw new Error('No access token received from Zoom');
+      }
       
       return this.accessToken;
     } catch (error: any) {

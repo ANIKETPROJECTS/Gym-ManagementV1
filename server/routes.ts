@@ -7,6 +7,7 @@ import { generateAccessToken, generateRefreshToken } from "./utils/jwt";
 import { authenticateToken, requireAdmin, requireRole, optionalAuth, requireOwnershipOrAdmin } from "./middleware/auth";
 import { exportUserData } from "./utils/data-export";
 import { emailService } from "./utils/email";
+import { zoomService } from "./services/zoom";
 import crypto from "crypto";
 import { 
   loginRateLimiter, 
@@ -111,6 +112,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let client = null;
       if (user.role === 'client' && user.clientId) {
         client = await storage.getClient(user.clientId.toString());
+        
+        // Check if client is active
+        if (client && client.status === 'inactive') {
+          return res.status(403).json({ 
+            message: "Your account has been deactivated. Please contact the administrator for assistance." 
+          });
+        }
       }
       
       // Generate JWT tokens
@@ -535,6 +543,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Client not found" });
       }
       res.json(client);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Toggle client active/inactive status (admin only)
+  app.patch("/api/clients/:id/status", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      
+      if (!status || !['active', 'inactive', 'pending'].includes(status)) {
+        return res.status(400).json({ message: "Valid status is required (active, inactive, or pending)" });
+      }
+      
+      const client = await storage.updateClient(req.params.id, { status });
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json({ message: `Client status updated to ${status}`, client });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1686,6 +1714,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(session);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create Zoom meeting for a session (admin only)
+  app.post("/api/sessions/:id/create-zoom", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      if (!zoomService.isConfigured()) {
+        return res.status(503).json({ 
+          message: "Zoom integration is not configured. Please add ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, and ZOOM_ACCOUNT_SECRET environment variables." 
+        });
+      }
+
+      const session = await storage.getSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Create Zoom meeting
+      const zoomMeeting = await zoomService.createMeeting({
+        topic: session.title,
+        start_time: new Date(session.scheduledAt).toISOString(),
+        duration: session.duration,
+        agenda: session.description || '',
+        password: req.body.password,
+      });
+
+      // Update session with Zoom details
+      const updatedSession = await storage.updateSession(req.params.id, {
+        zoomMeetingId: String(zoomMeeting.id),
+        joinUrl: zoomMeeting.join_url,
+        startUrl: zoomMeeting.start_url,
+        hostId: zoomMeeting.host_id,
+        meetingPassword: zoomMeeting.password,
+      });
+
+      res.json({ 
+        message: "Zoom meeting created successfully",
+        session: updatedSession,
+        zoomMeeting
+      });
+    } catch (error: any) {
+      console.error('Error creating Zoom meeting:', error);
+      res.status(500).json({ message: error.message || "Failed to create Zoom meeting" });
     }
   });
 
