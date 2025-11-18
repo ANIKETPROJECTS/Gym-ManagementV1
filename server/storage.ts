@@ -300,6 +300,9 @@ export class MongoStorage implements IStorage {
 
   async deleteClient(id: string): Promise<boolean> {
     const result = await Client.findByIdAndDelete(id);
+    if (result) {
+      await User.deleteOne({ clientId: id });
+    }
     return !!result;
   }
 
