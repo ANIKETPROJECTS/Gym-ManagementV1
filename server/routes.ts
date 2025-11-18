@@ -401,6 +401,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Get single trainer details (admin only)
+  app.get("/api/admin/trainers/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const trainer = await storage.getTrainer(req.params.id);
+      if (!trainer) {
+        return res.status(404).json({ message: "Trainer not found" });
+      }
+      const { password: _, ...trainerWithoutPassword } = trainer.toObject();
+      res.json(trainerWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update trainer info (admin only)
+  app.patch("/api/admin/trainers/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { name, email, phone } = req.body;
+      const updateData: any = {};
+      
+      if (name) updateData.name = name;
+      if (email) {
+        if (!validateEmail(email)) {
+          return res.status(400).json({ message: "Invalid email format" });
+        }
+        updateData.email = email.toLowerCase();
+      }
+      if (phone !== undefined) updateData.phone = phone;
+      
+      const updatedTrainer = await storage.updateUser(req.params.id, updateData);
+      if (!updatedTrainer) {
+        return res.status(404).json({ message: "Trainer not found" });
+      }
+      
+      const { password: _, ...trainerWithoutPassword } = updatedTrainer.toObject();
+      res.json({
+        message: "Trainer updated successfully",
+        trainer: trainerWithoutPassword,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Toggle trainer status (admin only)
+  app.patch("/api/admin/trainers/:id/status", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      
+      if (!status || !['active', 'inactive'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status. Must be 'active' or 'inactive'" });
+      }
+      
+      const updatedTrainer = await storage.updateUser(req.params.id, { status });
+      if (!updatedTrainer) {
+        return res.status(404).json({ message: "Trainer not found" });
+      }
+      
+      const { password: _, ...trainerWithoutPassword } = updatedTrainer.toObject();
+      res.json({
+        message: `Trainer status updated to ${status}`,
+        trainer: trainerWithoutPassword,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Assign clients to trainer (admin only)
+  app.patch("/api/admin/trainers/:id/assign-clients", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { clientIds } = req.body;
+      
+      if (!Array.isArray(clientIds)) {
+        return res.status(400).json({ message: "clientIds must be an array" });
+      }
+      
+      // Update each client with the trainer reference
+      for (const clientId of clientIds) {
+        await storage.updateClient(clientId, { trainerId: req.params.id });
+      }
+      
+      res.json({
+        message: "Clients assigned successfully",
+        assignedCount: clientIds.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   
   // Initialize default packages if none exist
   app.post("/api/init", async (_req, res) => {

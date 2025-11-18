@@ -32,9 +32,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdminClients() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -445,7 +446,7 @@ export default function AdminClients() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-3">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -454,17 +455,22 @@ export default function AdminClients() {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant={client.status === 'active' ? 'ghost' : 'default'}
-                                size="sm"
-                                onClick={() => toggleClientStatusMutation.mutate({
-                                  id: client._id,
-                                  status: client.status === 'active' ? 'inactive' : 'active'
-                                })}
-                                data-testid={`button-toggle-status-${client._id}`}
-                              >
-                                {client.status === 'active' ? 'Deactivate' : 'Activate'}
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {client.status === 'active' ? 'Active' : 'Inactive'}
+                                </span>
+                                <Switch
+                                  checked={client.status === 'active'}
+                                  onCheckedChange={(checked) => {
+                                    toggleClientStatusMutation.mutate({
+                                      id: client._id,
+                                      status: checked ? 'active' : 'inactive'
+                                    });
+                                  }}
+                                  disabled={toggleClientStatusMutation.isPending}
+                                  data-testid={`switch-status-${client._id}`}
+                                />
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
