@@ -129,7 +129,7 @@ export default function AdminClientsEnhanced() {
 
   const createClientMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/clients', 'POST', data);
+      const response = await apiRequest('POST', '/api/clients', data);
       return response.json();
     },
     onSuccess: () => {
@@ -153,7 +153,7 @@ export default function AdminClientsEnhanced() {
 
   const updateClientMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await apiRequest(`/api/clients/${id}`, 'PATCH', data);
+      const response = await apiRequest('PATCH', `/api/clients/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -178,7 +178,7 @@ export default function AdminClientsEnhanced() {
 
   const toggleClientStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await apiRequest(`/api/clients/${id}/status`, 'PATCH', { status });
+      const response = await apiRequest('PATCH', `/api/clients/${id}/status`, { status });
       return response.json();
     },
     onSuccess: (_data, variables) => {
@@ -200,7 +200,7 @@ export default function AdminClientsEnhanced() {
 
   const deleteClientMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest(`/api/clients/${id}`, 'DELETE');
+      const response = await apiRequest('DELETE', `/api/clients/${id}`);
       return response.json();
     },
     onSuccess: () => {
@@ -222,7 +222,7 @@ export default function AdminClientsEnhanced() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ clientIds, updates }: { clientIds: string[]; updates: any }) => {
-      const response = await apiRequest('/api/admin/clients/bulk-update', 'POST', {
+      const response = await apiRequest('POST', '/api/admin/clients/bulk-update', {
         clientIds,
         updates,
       });
