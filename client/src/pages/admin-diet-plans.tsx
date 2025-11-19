@@ -220,7 +220,7 @@ export default function AdminDietPlans() {
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="templates" data-testid="tab-templates">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Plan Templates
+                    Diet Templates
                   </TabsTrigger>
                   <TabsTrigger value="meals" data-testid="tab-meals">
                     <ChefHat className="h-4 w-4 mr-2" />
