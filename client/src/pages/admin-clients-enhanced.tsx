@@ -65,6 +65,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { DocumentViewer } from "@/components/document-viewer";
 
 export default function AdminClientsEnhanced() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,6 +79,7 @@ export default function AdminClientsEnhanced() {
   const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [viewingDocuments, setViewingDocuments] = useState<any>(null);
+  const [viewingDocument, setViewingDocument] = useState<{url: string; name: string; mimeType?: string} | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -981,7 +983,20 @@ export default function AdminClientsEnhanced() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setViewingDocuments(client)}
+                                onClick={() => {
+                                  if (client.aadharDocument) {
+                                    setViewingDocument({
+                                      url: client.aadharDocument,
+                                      name: `${client.name} - Government ID`,
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "No Document",
+                                      description: "This client has no government ID document uploaded",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
                                 data-testid={`button-view-docs-${client._id}`}
                               >
                                 <FileCheck className="h-3 w-3" />
@@ -1194,7 +1209,10 @@ export default function AdminClientsEnhanced() {
                         type="button"
                         variant="outline" 
                         size="sm"
-                        onClick={() => window.open(editingClient.profilePhoto, '_blank')}
+                        onClick={() => setViewingDocument({
+                          url: editingClient.profilePhoto,
+                          name: `${editingClient.name} - Profile Photo`,
+                        })}
                         data-testid="button-view-profile-photo"
                       >
                         <Eye className="h-3 w-3 mr-1" />
@@ -1248,7 +1266,10 @@ export default function AdminClientsEnhanced() {
                       type="button"
                       variant="outline" 
                       size="sm"
-                      onClick={() => window.open(editingClient.aadharDocument, '_blank')}
+                      onClick={() => setViewingDocument({
+                        url: editingClient.aadharDocument,
+                        name: `${editingClient.name} - Government ID`,
+                      })}
                       data-testid="button-view-government-id"
                     >
                       <Eye className="h-3 w-3 mr-1" />
@@ -1477,7 +1498,10 @@ export default function AdminClientsEnhanced() {
                     />
                     <Button
                       variant="outline"
-                      onClick={() => window.open(viewingDocuments.profilePhoto, '_blank')}
+                      onClick={() => setViewingDocument({
+                        url: viewingDocuments.profilePhoto,
+                        name: `${viewingDocuments.name} - Profile Photo`,
+                      })}
                       data-testid="button-view-profile-photo-full"
                     >
                       <Eye className="h-4 w-4 mr-2" />
@@ -1510,7 +1534,10 @@ export default function AdminClientsEnhanced() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => window.open(viewingDocuments.aadharDocument, '_blank')}
+                        onClick={() => setViewingDocument({
+                          url: viewingDocuments.aadharDocument,
+                          name: `${viewingDocuments.name} - Government ID`,
+                        })}
                         data-testid="button-view-government-id-full"
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -1543,7 +1570,10 @@ export default function AdminClientsEnhanced() {
                         </div>
                       </div>
                       <Button
-                        onClick={() => window.open(viewingDocuments.otherDocument, '_blank')}
+                        onClick={() => setViewingDocument({
+                          url: viewingDocuments.otherDocument,
+                          name: `${viewingDocuments.name} - Other Document`,
+                        })}
                         data-testid="button-view-other-document"
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -1603,6 +1633,13 @@ export default function AdminClientsEnhanced() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Document Viewer */}
+      <DocumentViewer
+        open={!!viewingDocument}
+        document={viewingDocument}
+        onClose={() => setViewingDocument(null)}
+      />
     </SidebarProvider>
   );
 }
