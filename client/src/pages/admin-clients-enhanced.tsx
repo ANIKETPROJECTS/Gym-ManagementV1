@@ -436,7 +436,7 @@ export default function AdminClientsEnhanced() {
     formDataObj.append('status', formData.status);
     
     // Only send password for new clients (not for editing)
-    if (!editingClient && formData.password) {
+    if (!editingClient) {
       formDataObj.append('password', formData.password);
     }
     
