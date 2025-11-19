@@ -3,7 +3,7 @@ import { AdminSidebar } from "@/components/admin-sidebar";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
-import { Users, Activity, DollarSign, TrendingUp, UserPlus, Video } from "lucide-react";
+import { Users, Activity, DollarSign, TrendingUp, UserPlus, Video, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,10 @@ export default function AdminDashboard() {
 
   const { data: clients = [] } = useQuery<any[]>({
     queryKey: ['/api/clients'],
+  });
+
+  const { data: trainers = [] } = useQuery<any[]>({
+    queryKey: ['/api/admin/trainers'],
   });
 
   const { data: packages = [] } = useQuery<any[]>({
@@ -75,7 +79,7 @@ export default function AdminDashboard() {
 
           <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                 <StatCard
                   title="Total Clients"
                   value={totalClients}
@@ -88,6 +92,13 @@ export default function AdminDashboard() {
                   value={activeClients}
                   icon={Activity}
                   trend={`${totalClients - activeClients} inactive`}
+                  trendUp={true}
+                />
+                <StatCard
+                  title="Total Trainers"
+                  value={trainers.length}
+                  icon={UserCheck}
+                  trend="Team members"
                   trendUp={true}
                 />
                 <StatCard

@@ -910,7 +910,21 @@ export default function AdminClientsEnhanced() {
                   data-testid="input-profile-photo"
                 />
                 {fileNames.profilePhoto && (
-                  <p className="text-sm text-muted-foreground">{fileNames.profilePhoto}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">{fileNames.profilePhoto}</p>
+                    {editingClient?.profilePhoto && (
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(editingClient.profilePhoto, '_blank')}
+                        data-testid="button-view-profile-photo"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="space-y-2">
@@ -948,7 +962,21 @@ export default function AdminClientsEnhanced() {
                   data-testid="input-aadhar-document"
                 />
                 {fileNames.aadharDocument && (
-                  <p className="text-sm text-muted-foreground">{fileNames.aadharDocument}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">{fileNames.aadharDocument}</p>
+                    {editingClient?.aadharDocument && (
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(editingClient.aadharDocument, '_blank')}
+                        data-testid="button-view-aadhar"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="space-y-2">
@@ -967,7 +995,21 @@ export default function AdminClientsEnhanced() {
                   data-testid="input-other-document"
                 />
                 {fileNames.otherDocument && (
-                  <p className="text-sm text-muted-foreground">{fileNames.otherDocument}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">{fileNames.otherDocument}</p>
+                    {editingClient?.otherDocument && (
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(editingClient.otherDocument, '_blank')}
+                        data-testid="button-view-other-document"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
