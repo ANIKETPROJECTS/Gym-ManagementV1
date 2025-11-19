@@ -123,6 +123,7 @@ app.use((req, res, next) => {
     
     // Create demo client if doesn't exist (regardless of packages)
       const demoClientPhone = "8600126395";
+      const demoClientEmail = "abhijeet@gmail.com";
       let demoClient = await storage.getClientByPhone(demoClientPhone);
       
       if (!demoClient) {
@@ -131,16 +132,51 @@ app.use((req, res, next) => {
         
         demoClient = await storage.createClient({
           name: "Abhijeet Singh",
-          email: "abhijeet@gmail.com",
+          email: demoClientEmail,
           phone: demoClientPhone,
           packageId: premiumPackage?._id?.toString() || "",
           age: 28,
           gender: "male",
           height: 175,
           weight: 75,
-          goal: "Build Muscle"
+          goal: "Build Muscle",
+          status: "active"
         });
         log(`👤 Created demo client: Abhijeet Singh`);
+        
+        // Create user account for demo client
+        const demoClientPassword = "Abhi@123";
+        const existingUser = await User.findOne({ email: demoClientEmail });
+        if (!existingUser) {
+          const hashedPassword = await hashPassword(demoClientPassword);
+          await User.create({
+            email: demoClientEmail.toLowerCase(),
+            password: hashedPassword,
+            role: 'client',
+            name: 'Abhijeet Singh',
+            phone: demoClientPhone,
+            clientId: String(demoClient._id),
+            status: 'active',
+          });
+          log(`🔐 Created user account for demo client (email: ${demoClientEmail}, password: ${demoClientPassword})`);
+        }
+      } else {
+        // Ensure demo client has a user account
+        const existingUser = await User.findOne({ email: demoClientEmail });
+        if (!existingUser) {
+          const demoClientPassword = "Abhi@123";
+          const hashedPassword = await hashPassword(demoClientPassword);
+          await User.create({
+            email: demoClientEmail.toLowerCase(),
+            password: hashedPassword,
+            role: 'client',
+            name: 'Abhijeet Singh',
+            phone: demoClientPhone,
+            clientId: String(demoClient._id),
+            status: 'active',
+          });
+          log(`🔐 Created user account for existing demo client (email: ${demoClientEmail})`);
+        }
       }
       
       // ALWAYS ensure default admin and trainer accounts exist
@@ -203,7 +239,7 @@ app.use((req, res, next) => {
         const hashedTrainerPassword = await hashPassword(trainerPassword);
         trainerUser.password = hashedTrainerPassword;
         trainerUser.role = 'trainer';
-        trainerUser.trainerId = demoTrainer._id;
+        trainerUser.trainerId = String(demoTrainer._id);
         await trainerUser.save();
         log(`🔐 Verified trainer user (email: ${trainerEmail})`);
       }

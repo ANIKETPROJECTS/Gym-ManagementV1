@@ -77,6 +77,7 @@ export default function AdminClientsEnhanced() {
     name: "",
     phone: "",
     email: "",
+    password: "",
     packageId: "",
     age: "",
     gender: "",
@@ -277,6 +278,7 @@ export default function AdminClientsEnhanced() {
       name: "",
       phone: "",
       email: "",
+      password: "",
       packageId: "",
       age: "",
       gender: "",
@@ -725,6 +727,19 @@ export default function AdminClientsEnhanced() {
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete ${client.name}? This will deactivate their account.`)) {
+                                      deleteClientMutation.mutate(client._id);
+                                    }
+                                  }}
+                                  disabled={deleteClientMutation.isPending}
+                                  data-testid={`button-delete-${client._id}`}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm text-muted-foreground">
                                     {client.status === 'active' ? 'Active' : 'Inactive'}
@@ -796,36 +811,51 @@ export default function AdminClientsEnhanced() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                data-testid="input-client-email"
+              />
+            </div>
+
+            {!editingClient && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="password">Password *</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  data-testid="input-client-email"
+                  minLength={6}
+                  placeholder="Minimum 6 characters"
+                  data-testid="input-client-password"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="package">Package</Label>
-                <Select
-                  value={formData.packageId}
-                  onValueChange={(value) => setFormData({ ...formData, packageId: value })}
-                >
-                  <SelectTrigger data-testid="select-package">
-                    <SelectValue placeholder="Select package" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {packages.map((pkg: any) => (
-                      <SelectItem key={pkg._id} value={pkg._id}>
-                        {pkg.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="package">Package</Label>
+              <Select
+                value={formData.packageId}
+                onValueChange={(value) => setFormData({ ...formData, packageId: value })}
+              >
+                <SelectTrigger data-testid="select-package">
+                  <SelectValue placeholder="Select package" />
+                </SelectTrigger>
+                <SelectContent>
+                  {packages.map((pkg: any) => (
+                    <SelectItem key={pkg._id} value={pkg._id}>
+                      {pkg.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

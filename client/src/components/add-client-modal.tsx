@@ -16,6 +16,7 @@ export function AddClientModal({ open, onOpenChange }: AddClientModalProps) {
     lastName: "",
     email: "",
     phone: "",
+    password: "",
     package: "",
   });
 
@@ -23,7 +24,7 @@ export function AddClientModal({ open, onOpenChange }: AddClientModalProps) {
     e.preventDefault();
     console.log("Adding new client:", formData);
     // Reset form
-    setFormData({ firstName: "", lastName: "", email: "", phone: "", package: "" });
+    setFormData({ firstName: "", lastName: "", email: "", phone: "", password: "", package: "" });
     onOpenChange(false);
   };
 
@@ -67,16 +68,31 @@ export function AddClientModal({ open, onOpenChange }: AddClientModalProps) {
               data-testid="input-email"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              data-testid="input-phone"
-            />
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                data-testid="input-phone"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={6}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                data-testid="input-password"
+                placeholder="Minimum 6 characters"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="package">Package *</Label>

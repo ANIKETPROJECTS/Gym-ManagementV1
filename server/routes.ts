@@ -697,6 +697,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const clientData: any = { ...req.body };
       
+      // Extract password before file handling
+      const { password } = req.body;
+      
+      // Validate required fields
+      if (!clientData.email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+      
+      // Check if user with this email already exists
+      const existingUser = await storage.getUserByEmail(clientData.email.toLowerCase());
+      if (existingUser) {
+        return res.status(400).json({ message: "A user with this email already exists" });
+      }
+      
       // Handle file uploads
       if (files?.profilePhoto) {
         const file = files.profilePhoto[0];
@@ -725,9 +743,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clientData.otherDocument = `/uploads/documents/${filename}`;
       }
       
+      // Create the client first
       const client = await storage.createClient(clientData);
+      
+      // Create user account for the client with hashed password
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({
+        email: clientData.email.toLowerCase(),
+        password: hashedPassword,
+        role: 'client',
+        name: clientData.name,
+        phone: clientData.phone,
+        clientId: String(client._id),
+        status: 'active',
+      });
+      
+      console.log(`✅ Created client and user account for: ${clientData.email}`);
+      
       res.json(client);
     } catch (error: any) {
+      console.error('Error creating client:', error);
       res.status(500).json({ message: error.message });
     }
   });
