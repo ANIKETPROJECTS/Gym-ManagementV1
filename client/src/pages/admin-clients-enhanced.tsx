@@ -418,12 +418,27 @@ export default function AdminClientsEnhanced() {
       return;
     }
     
+    // Validate password for new clients
+    if (!editingClient && !formData.password) {
+      toast({
+        title: "Missing Password",
+        description: "Please enter a password for the new client",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Create FormData for file uploads
     const formDataObj = new FormData();
     formDataObj.append('name', formData.name);
     formDataObj.append('phone', formData.phone);
     formDataObj.append('email', formData.email);
     formDataObj.append('status', formData.status);
+    
+    // Only send password for new clients (not for editing)
+    if (!editingClient && formData.password) {
+      formDataObj.append('password', formData.password);
+    }
     
     if (formData.packageId) formDataObj.append('packageId', formData.packageId);
     if (formData.age) formDataObj.append('age', formData.age);
