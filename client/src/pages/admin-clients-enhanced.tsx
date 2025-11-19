@@ -179,9 +179,15 @@ export default function AdminClientsEnhanced() {
   const toggleClientStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await apiRequest('PATCH', `/api/clients/${id}/status`, { status });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update status');
+      }
       return response.json();
     },
     onSuccess: (_data, variables) => {
+      // Switch to "all" filter to ensure the updated client is visible
+      setStatusFilter("all");
       queryClient.invalidateQueries({ queryKey: ['/api/admin/clients/search'] });
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
       toast({
@@ -189,10 +195,11 @@ export default function AdminClientsEnhanced() {
         description: `Client status updated to ${variables.status}`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Status toggle error:', error);
       toast({
         title: "Error",
-        description: "Failed to update client status",
+        description: error.message || "Failed to update client status",
         variant: "destructive",
       });
     },
