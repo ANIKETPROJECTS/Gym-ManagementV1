@@ -16,6 +16,7 @@ export interface IClient extends Document {
   phone?: string;
   email: string;
   packageId?: string;
+  trainerId?: string;
   age?: number;
   gender?: string;
   height?: number;
@@ -305,6 +306,7 @@ const ClientSchema = new Schema({
   phone: { type: String },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   packageId: { type: Schema.Types.ObjectId, ref: 'Package' },
+  trainerId: { type: Schema.Types.ObjectId, ref: 'User' },
   age: Number,
   gender: String,
   height: Number,

@@ -8,6 +8,7 @@ export interface IUser extends Document {
   phone?: string;
   clientId?: string;
   trainerId?: string;
+  status?: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +21,7 @@ const UserSchema = new Schema({
   phone: { type: String },
   clientId: { type: Schema.Types.ObjectId, ref: 'Client' },
   trainerId: { type: Schema.Types.ObjectId, ref: 'Trainer' },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
