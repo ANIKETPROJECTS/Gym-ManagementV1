@@ -319,6 +319,9 @@ app.use((req, res, next) => {
     process.exit(1);
   }
 
+  // Serve uploaded files statically
+  app.use('/uploads', express.static('uploads'));
+  
   // Register all routes
   const server = await registerRoutes(app);
 

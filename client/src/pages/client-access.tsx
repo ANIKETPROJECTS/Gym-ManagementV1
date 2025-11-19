@@ -9,7 +9,6 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Dumbbell, ArrowLeft, Eye, EyeOff, KeyRound } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ClientAccess() {
   const [, setLocation] = useLocation();
@@ -19,13 +18,6 @@ export default function ClientAccess() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  
-  // Signup state
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
-  const [signupPhone, setSignupPhone] = useState("");
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
@@ -69,36 +61,6 @@ export default function ClientAccess() {
     },
   });
 
-  const signupMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; name: string; phone: string }) => {
-      const response = await apiRequest('POST', '/api/auth/signup', data);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      const { user, clientId } = data;
-      localStorage.setItem('userId', user._id);
-      localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('userRole', user.role);
-      localStorage.setItem('userName', user.name);
-      localStorage.setItem('clientId', clientId);
-      localStorage.setItem('clientName', user.name);
-      
-      toast({
-        title: "Welcome to FitPro!",
-        description: "Your account has been created successfully.",
-      });
-      
-      setTimeout(() => setLocation("/client"), 500);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Signup Failed",
-        description: error.message || "Failed to create account",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -112,35 +74,6 @@ export default function ClientAccess() {
     }
     
     loginMutation.mutate({ email: loginEmail, password: loginPassword });
-  };
-
-  const handleSignupSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!signupEmail || !signupPassword || !signupName) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (signupPassword.length < 6) {
-      toast({
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    signupMutation.mutate({
-      email: signupEmail,
-      password: signupPassword,
-      name: signupName,
-      phone: signupPhone,
-    });
   };
 
   return (
@@ -174,161 +107,73 @@ export default function ClientAccess() {
               <Dumbbell className="h-8 w-8 text-primary" />
             </div>
             <div className="text-center">
-              <CardTitle className="text-2xl font-display">Client Access</CardTitle>
+              <CardTitle className="text-2xl font-display">Client Login</CardTitle>
               <CardDescription className="mt-2">
                 Sign in to access your personalized fitness dashboard
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-                <TabsTrigger value="signup" data-testid="tab-signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      data-testid="input-login-email"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showLoginPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        data-testid="input-login-password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        data-testid="button-toggle-login-password"
-                      >
-                        {showLoginPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-sm px-0 h-auto text-primary hover:underline"
-                      onClick={() => setLocation("/forgot-password")}
-                      data-testid="link-forgot-password"
-                    >
-                      <KeyRound className="h-3 w-3 mr-1" />
-                      Forgot Password?
-                    </Button>
-                  </div>
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  data-testid="input-login-email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showLoginPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    data-testid="input-login-password"
+                  />
                   <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loginMutation.isPending}
-                    data-testid="button-login-submit"
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    data-testid="button-toggle-login-password"
                   >
-                    {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                    {showLoginPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignupSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name *</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      data-testid="input-signup-name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email *</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      data-testid="input-signup-email"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone Number</Label>
-                    <Input
-                      id="signup-phone"
-                      type="tel"
-                      placeholder="1234567890"
-                      value={signupPhone}
-                      onChange={(e) => setSignupPhone(e.target.value)}
-                      data-testid="input-signup-phone"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Optional - for contact purposes
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showSignupPassword ? "text" : "password"}
-                        placeholder="At least 6 characters"
-                        value={signupPassword}
-                        onChange={(e) => setSignupPassword(e.target.value)}
-                        data-testid="input-signup-password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0"
-                        onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        data-testid="button-toggle-signup-password"
-                      >
-                        {showSignupPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Minimum 6 characters
-                    </p>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={signupMutation.isPending}
-                    data-testid="button-signup-submit"
-                  >
-                    {signupMutation.isPending ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-sm px-0 h-auto text-primary hover:underline"
+                  onClick={() => setLocation("/forgot-password")}
+                  data-testid="link-forgot-password"
+                >
+                  <KeyRound className="h-3 w-3 mr-1" />
+                  Forgot Password?
+                </Button>
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loginMutation.isPending}
+                data-testid="button-login-submit"
+              >
+                {loginMutation.isPending ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </main>

@@ -8,7 +8,10 @@ import { authenticateToken, requireAdmin, requireRole, optionalAuth, requireOwne
 import { exportUserData } from "./utils/data-export";
 import { emailService } from "./utils/email";
 import { zoomService } from "./services/zoom";
+import { upload } from "./middleware/upload";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 import { 
   loginRateLimiter, 
   uploadRateLimiter, 
@@ -329,8 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Admin route to create trainer credentials (protected)
-  app.post("/api/admin/trainers", authenticateToken, requireAdmin, async (req, res) => {
+  app.post("/api/admin/trainers", authenticateToken, requireAdmin, upload.fields([
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'documentOne', maxCount: 1 },
+    { name: 'documentTwo', maxCount: 1 }
+  ]), async (req, res) => {
     try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const { email, password, name, phone } = req.body;
       
       // Validate input
@@ -353,15 +361,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User with this email already exists" });
       }
       
-      // Hash password and create trainer user
-      const hashedPassword = await hashPassword(password);
-      const trainer = await storage.createUser({
+      // Prepare user data
+      const userData: any = {
         email: email.toLowerCase(),
-        password: hashedPassword,
+        password: await hashPassword(password),
         role: 'trainer',
         name,
         phone: phone || '',
-      });
+      };
+      
+      // Handle file uploads
+      if (files?.profilePhoto) {
+        const file = files.profilePhoto[0];
+        const filename = `trainer-profile-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'trainers', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        userData.profilePhoto = `/uploads/trainers/${filename}`;
+      }
+      
+      if (files?.documentOne) {
+        const file = files.documentOne[0];
+        const filename = `trainer-doc1-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        userData.documentOne = `/uploads/documents/${filename}`;
+      }
+      
+      if (files?.documentTwo) {
+        const file = files.documentTwo[0];
+        const filename = `trainer-doc2-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        userData.documentTwo = `/uploads/documents/${filename}`;
+      }
+      
+      // Create trainer user
+      const trainer = await storage.createUser(userData);
       
       // Return trainer data without password
       const { password: _, ...trainerWithoutPassword } = trainer.toObject();
@@ -417,8 +455,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update trainer info (admin only)
-  app.patch("/api/admin/trainers/:id", authenticateToken, requireAdmin, async (req, res) => {
+  app.patch("/api/admin/trainers/:id", authenticateToken, requireAdmin, upload.fields([
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'documentOne', maxCount: 1 },
+    { name: 'documentTwo', maxCount: 1 }
+  ]), async (req, res) => {
     try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const { name, email, phone } = req.body;
       const updateData: any = {};
       
@@ -430,6 +473,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.email = email.toLowerCase();
       }
       if (phone !== undefined) updateData.phone = phone;
+      
+      // Handle file uploads
+      if (files?.profilePhoto) {
+        const file = files.profilePhoto[0];
+        const filename = `trainer-profile-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'trainers', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        updateData.profilePhoto = `/uploads/trainers/${filename}`;
+      }
+      
+      if (files?.documentOne) {
+        const file = files.documentOne[0];
+        const filename = `trainer-doc1-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        updateData.documentOne = `/uploads/documents/${filename}`;
+      }
+      
+      if (files?.documentTwo) {
+        const file = files.documentTwo[0];
+        const filename = `trainer-doc2-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        updateData.documentTwo = `/uploads/documents/${filename}`;
+      }
       
       const updatedTrainer = await storage.updateUser(req.params.id, updateData);
       if (!updatedTrainer) {
@@ -617,9 +688,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create client (admin only - protected)
-  app.post("/api/clients", authenticateToken, requireAdmin, async (req, res) => {
+  app.post("/api/clients", authenticateToken, requireAdmin, upload.fields([
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'aadharDocument', maxCount: 1 },
+    { name: 'otherDocument', maxCount: 1 }
+  ]), async (req, res) => {
     try {
-      const client = await storage.createClient(req.body);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const clientData: any = { ...req.body };
+      
+      // Handle file uploads
+      if (files?.profilePhoto) {
+        const file = files.profilePhoto[0];
+        const filename = `profile-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'clients', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.profilePhoto = `/uploads/clients/${filename}`;
+      }
+      
+      if (files?.aadharDocument) {
+        const file = files.aadharDocument[0];
+        const filename = `aadhar-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.aadharDocument = `/uploads/documents/${filename}`;
+      }
+      
+      if (files?.otherDocument) {
+        const file = files.otherDocument[0];
+        const filename = `doc-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.otherDocument = `/uploads/documents/${filename}`;
+      }
+      
+      const client = await storage.createClient(clientData);
       res.json(client);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -627,9 +733,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update client (owner or admin - protected)
-  app.patch("/api/clients/:id", authenticateToken, requireOwnershipOrAdmin, async (req, res) => {
+  app.patch("/api/clients/:id", authenticateToken, requireOwnershipOrAdmin, upload.fields([
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'aadharDocument', maxCount: 1 },
+    { name: 'otherDocument', maxCount: 1 }
+  ]), async (req, res) => {
     try {
-      const client = await storage.updateClient(req.params.id, req.body);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const clientData: any = { ...req.body };
+      
+      // Handle file uploads
+      if (files?.profilePhoto) {
+        const file = files.profilePhoto[0];
+        const filename = `profile-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'clients', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.profilePhoto = `/uploads/clients/${filename}`;
+      }
+      
+      if (files?.aadharDocument) {
+        const file = files.aadharDocument[0];
+        const filename = `aadhar-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.aadharDocument = `/uploads/documents/${filename}`;
+      }
+      
+      if (files?.otherDocument) {
+        const file = files.otherDocument[0];
+        const filename = `doc-${Date.now()}${path.extname(file.originalname)}`;
+        const uploadPath = path.join(process.cwd(), 'uploads', 'documents', filename);
+        fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+        fs.renameSync(file.path, uploadPath);
+        clientData.otherDocument = `/uploads/documents/${filename}`;
+      }
+      
+      const client = await storage.updateClient(req.params.id, clientData);
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
       }

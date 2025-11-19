@@ -27,7 +27,6 @@ import { Link, useLocation } from "wouter";
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/admin/dashboard" },
   { title: "Clients", icon: Users, url: "/admin/clients" },
-  { title: "Client Setup", icon: UserPlus, url: "/admin/client-setup" },
   { title: "Trainers", icon: Users, url: "/admin/trainers" },
   { title: "Videos", icon: Video, url: "/admin/videos" },
   { title: "Diet, Meals & Workout", icon: UtensilsCrossed, url: "/admin/diet" },

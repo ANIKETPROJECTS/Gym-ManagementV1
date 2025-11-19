@@ -82,9 +82,17 @@ export default function AdminClientsEnhanced() {
     gender: "",
     height: "",
     weight: "",
-    goal: "",
+    address: "",
     status: "active",
-    adminNotes: "",
+    profilePhoto: null as File | null,
+    aadharDocument: null as File | null,
+    otherDocument: null as File | null,
+  });
+  
+  const [fileNames, setFileNames] = useState({
+    profilePhoto: "",
+    aadharDocument: "",
+    otherDocument: "",
   });
 
   const style = {
@@ -254,6 +262,16 @@ export default function AdminClientsEnhanced() {
     },
   });
 
+  const validateIndianPhone = (phone: string): boolean => {
+    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    return phoneRegex.test(phone.replace(/\s+/g, ''));
+  };
+  
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
   const resetForm = () => {
     setFormData({
       name: "",
@@ -264,31 +282,88 @@ export default function AdminClientsEnhanced() {
       gender: "",
       height: "",
       weight: "",
-      goal: "",
+      address: "",
       status: "active",
-      adminNotes: "",
+      profilePhoto: null,
+      aadharDocument: null,
+      otherDocument: null,
+    });
+    setFileNames({
+      profilePhoto: "",
+      aadharDocument: "",
+      otherDocument: "",
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const submitData = {
-      ...formData,
-      age: formData.age ? parseInt(formData.age) : undefined,
-      height: formData.height ? parseFloat(formData.height) : undefined,
-      weight: formData.weight ? parseFloat(formData.weight) : undefined,
-      packageId: formData.packageId || undefined,
-      email: formData.email || undefined,
-      gender: formData.gender || undefined,
-      goal: formData.goal || undefined,
-      status: formData.status || 'active',
-      adminNotes: formData.adminNotes || undefined,
-    };
+    
+    // Validate phone number
+    if (!validateIndianPhone(formData.phone)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid Indian phone number (10 digits, optionally starting with +91 or 91)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate email
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create FormData for file uploads
+    const formDataObj = new FormData();
+    formDataObj.append('name', formData.name);
+    formDataObj.append('phone', formData.phone);
+    formDataObj.append('email', formData.email);
+    formDataObj.append('status', formData.status);
+    
+    if (formData.packageId) formDataObj.append('packageId', formData.packageId);
+    if (formData.age) formDataObj.append('age', formData.age);
+    if (formData.gender) formDataObj.append('gender', formData.gender);
+    if (formData.height) formDataObj.append('height', formData.height);
+    if (formData.weight) formDataObj.append('weight', formData.weight);
+    if (formData.address) formDataObj.append('address', formData.address);
+    if (formData.profilePhoto) formDataObj.append('profilePhoto', formData.profilePhoto);
+    if (formData.aadharDocument) formDataObj.append('aadharDocument', formData.aadharDocument);
+    if (formData.otherDocument) formDataObj.append('otherDocument', formData.otherDocument);
 
-    if (editingClient) {
-      updateClientMutation.mutate({ id: editingClient._id, data: submitData });
-    } else {
-      createClientMutation.mutate(submitData);
+    try {
+      const endpoint = editingClient ? `/api/clients/${editingClient._id}` : '/api/clients';
+      const method = editingClient ? 'PATCH' : 'POST';
+      
+      const response = await fetch(endpoint, {
+        method,
+        body: formDataObj,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save client');
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/clients/search'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
+      setIsAddDialogOpen(false);
+      setEditingClient(null);
+      resetForm();
+      
+      toast({
+        title: "Success",
+        description: editingClient ? "Client updated successfully" : "Client added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save client",
+        variant: "destructive",
+      });
     }
   };
 
@@ -313,9 +388,16 @@ export default function AdminClientsEnhanced() {
       gender: client.gender || "",
       height: client.height?.toString() || "",
       weight: client.weight?.toString() || "",
-      goal: client.goal || "",
+      address: client.address || "",
       status: client.status || "active",
-      adminNotes: client.adminNotes || "",
+      profilePhoto: null,
+      aadharDocument: null,
+      otherDocument: null,
+    });
+    setFileNames({
+      profilePhoto: client.profilePhoto ? "Current: " + client.profilePhoto.split('/').pop() : "",
+      aadharDocument: client.aadharDocument ? "Current: " + client.aadharDocument.split('/').pop() : "",
+      otherDocument: client.otherDocument ? "Current: " + client.otherDocument.split('/').pop() : "",
     });
   };
 
@@ -799,22 +881,37 @@ export default function AdminClientsEnhanced() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                placeholder="Enter client's address..."
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                rows={2}
+                data-testid="textarea-address"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="goal">Goal</Label>
-                <Select
-                  value={formData.goal}
-                  onValueChange={(value) => setFormData({ ...formData, goal: value })}
-                >
-                  <SelectTrigger data-testid="select-goal">
-                    <SelectValue placeholder="Select goal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lose">Weight Loss</SelectItem>
-                    <SelectItem value="maintain">Maintain Weight</SelectItem>
-                    <SelectItem value="gain">Muscle Gain</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="profilePhoto">Profile Photo</Label>
+                <Input
+                  id="profilePhoto"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFormData({ ...formData, profilePhoto: file });
+                      setFileNames({ ...fileNames, profilePhoto: file.name });
+                    }
+                  }}
+                  data-testid="input-profile-photo"
+                />
+                {fileNames.profilePhoto && (
+                  <p className="text-sm text-muted-foreground">{fileNames.profilePhoto}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -834,16 +931,45 @@ export default function AdminClientsEnhanced() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="adminNotes">Admin Notes</Label>
-              <Textarea
-                id="adminNotes"
-                placeholder="Private notes about this client..."
-                value={formData.adminNotes}
-                onChange={(e) => setFormData({ ...formData, adminNotes: e.target.value })}
-                rows={3}
-                data-testid="textarea-admin-notes"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="aadharDocument">Aadhar Card</Label>
+                <Input
+                  id="aadharDocument"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFormData({ ...formData, aadharDocument: file });
+                      setFileNames({ ...fileNames, aadharDocument: file.name });
+                    }
+                  }}
+                  data-testid="input-aadhar-document"
+                />
+                {fileNames.aadharDocument && (
+                  <p className="text-sm text-muted-foreground">{fileNames.aadharDocument}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="otherDocument">Other Document</Label>
+                <Input
+                  id="otherDocument"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFormData({ ...formData, otherDocument: file });
+                      setFileNames({ ...fileNames, otherDocument: file.name });
+                    }
+                  }}
+                  data-testid="input-other-document"
+                />
+                {fileNames.otherDocument && (
+                  <p className="text-sm text-muted-foreground">{fileNames.otherDocument}</p>
+                )}
+              </div>
             </div>
 
             <DialogFooter>

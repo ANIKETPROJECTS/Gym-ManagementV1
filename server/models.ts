@@ -25,6 +25,8 @@ export interface IClient extends Document {
   bio?: string;
   address?: string;
   profilePhoto?: string;
+  aadharDocument?: string;
+  otherDocument?: string;
   medicalConditions?: string[];
   injuries?: string[];
   fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
@@ -259,6 +261,8 @@ export interface ITrainer extends Document {
   specialty?: string;
   bio?: string;
   profilePhoto?: string;
+  documentOne?: string;
+  documentTwo?: string;
   certifications?: string[];
   experience?: number;
   assignedClients?: string[];
@@ -282,6 +286,8 @@ const TrainerSchema = new Schema({
   specialty: String,
   bio: String,
   profilePhoto: String,
+  documentOne: String,
+  documentTwo: String,
   certifications: [String],
   experience: Number,
   assignedClients: [{ type: Schema.Types.ObjectId, ref: 'Client' }],
@@ -323,6 +329,8 @@ const ClientSchema = new Schema({
   bio: String,
   address: String,
   profilePhoto: String,
+  aadharDocument: String,
+  otherDocument: String,
   medicalConditions: [String],
   injuries: [String],
   fitnessLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'] },

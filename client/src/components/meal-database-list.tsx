@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Plus, Search, Edit, Trash2, Copy, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssignPlanDialog } from "@/components/assign-plan-dialog";
@@ -18,15 +20,49 @@ const MEAL_TYPES = [
 ];
 
 // Force rebuild - filters should display
+interface MealFormData {
+  name: string;
+  mealType: string;
+  calories: string;
+  protein: string;
+  carbs: string;
+  fats: string;
+}
+
 export function MealDatabaseList() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [mealTypeFilter, setMealTypeFilter] = useState<string>("all");
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<any>(null);
+  const [formData, setFormData] = useState<MealFormData>({
+    name: "",
+    mealType: "breakfast",
+    calories: "",
+    protein: "",
+    carbs: "",
+    fats: "",
+  });
 
   const { data: meals = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/meals'],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      apiRequest("PATCH", `/api/meals/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meals'] });
+      toast({ title: "Success", description: "Meal updated successfully" });
+      setEditDialogOpen(false);
+      setEditingMeal(null);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const cloneMutation = useMutation({
@@ -50,6 +86,74 @@ export function MealDatabaseList() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      mealType: "breakfast",
+      calories: "",
+      protein: "",
+      carbs: "",
+      fats: "",
+    });
+  };
+
+  const handleEdit = (meal: any) => {
+    setEditingMeal(meal);
+    setFormData({
+      name: meal.name,
+      mealType: meal.mealType,
+      calories: String(meal.calories ?? ""),
+      protein: String(meal.protein ?? ""),
+      carbs: String(meal.carbs ?? ""),
+      fats: String(meal.fats ?? ""),
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim()) {
+      toast({ title: "Error", description: "Please enter a meal name", variant: "destructive" });
+      return;
+    }
+
+    const calories = parseFloat(formData.calories);
+    if (isNaN(calories) || calories <= 0) {
+      toast({ title: "Error", description: "Please enter valid calories (greater than 0)", variant: "destructive" });
+      return;
+    }
+
+    const protein = parseFloat(formData.protein);
+    if (isNaN(protein) || protein < 0) {
+      toast({ title: "Error", description: "Please enter valid protein value", variant: "destructive" });
+      return;
+    }
+
+    const carbs = parseFloat(formData.carbs);
+    if (isNaN(carbs) || carbs < 0) {
+      toast({ title: "Error", description: "Please enter valid carbs value", variant: "destructive" });
+      return;
+    }
+
+    const fats = parseFloat(formData.fats);
+    if (isNaN(fats) || fats < 0) {
+      toast({ title: "Error", description: "Please enter valid fats value", variant: "destructive" });
+      return;
+    }
+
+    if (editingMeal) {
+      updateMutation.mutate({ 
+        id: editingMeal._id, 
+        data: {
+          ...formData,
+          calories,
+          protein,
+          carbs,
+          fats,
+        }
+      });
+    }
+  };
 
   const filteredMeals = meals.filter((meal) => {
     const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -151,6 +255,7 @@ export function MealDatabaseList() {
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => handleEdit(meal)}
                     data-testid={`button-edit-${meal._id}`}
                   >
                     <Edit className="h-3 w-3 mr-1" />
@@ -178,6 +283,117 @@ export function MealDatabaseList() {
         plan={selectedMeal}
         resourceType="meal"
       />
+
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setEditingMeal(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Meal</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="meal-name">Meal Name *</Label>
+              <Input
+                id="meal-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Grilled Chicken Breast"
+                data-testid="input-meal-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="meal-type">Meal Type *</Label>
+              <Select value={formData.mealType} onValueChange={(value) => setFormData({ ...formData, mealType: value })}>
+                <SelectTrigger id="meal-type" data-testid="select-meal-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEAL_TYPES.map(type => (
+                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="calories">Calories *</Label>
+                <Input
+                  id="calories"
+                  type="number"
+                  value={formData.calories}
+                  onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                  placeholder="0"
+                  data-testid="input-calories"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="protein">Protein (g) *</Label>
+                <Input
+                  id="protein"
+                  type="number"
+                  value={formData.protein}
+                  onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
+                  placeholder="0"
+                  data-testid="input-protein"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="carbs">Carbs (g) *</Label>
+                <Input
+                  id="carbs"
+                  type="number"
+                  value={formData.carbs}
+                  onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
+                  placeholder="0"
+                  data-testid="input-carbs"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fats">Fats (g) *</Label>
+                <Input
+                  id="fats"
+                  type="number"
+                  value={formData.fats}
+                  onChange={(e) => setFormData({ ...formData, fats: e.target.value })}
+                  placeholder="0"
+                  data-testid="input-fats"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditDialogOpen(false);
+                  setEditingMeal(null);
+                  resetForm();
+                }}
+                data-testid="button-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={updateMutation.isPending}
+                data-testid="button-save-meal"
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

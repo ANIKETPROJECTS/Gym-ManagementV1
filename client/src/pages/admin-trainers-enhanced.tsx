@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Trash2, Eye, EyeOff, Users, UserCheck, UserX } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, EyeOff, Users, UserCheck, UserX, Upload } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -53,6 +53,15 @@ export default function AdminTrainersEnhanced() {
     phone: "",
     password: "",
     status: "active",
+    profilePhoto: null as File | null,
+    documentOne: null as File | null,
+    documentTwo: null as File | null,
+  });
+  
+  const [fileNames, setFileNames] = useState({
+    profilePhoto: "",
+    documentOne: "",
+    documentTwo: "",
   });
 
   const style = {
@@ -210,11 +219,19 @@ export default function AdminTrainersEnhanced() {
       phone: "",
       password: "",
       status: "active",
+      profilePhoto: null,
+      documentOne: null,
+      documentTwo: null,
+    });
+    setFileNames({
+      profilePhoto: "",
+      documentOne: "",
+      documentTwo: "",
     });
     setShowPassword(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email) {
@@ -235,21 +252,46 @@ export default function AdminTrainersEnhanced() {
       return;
     }
 
-    const submitData: any = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || undefined,
-      status: formData.status,
-    };
+    // Create FormData for file uploads
+    const formDataObj = new FormData();
+    formDataObj.append('name', formData.name);
+    formDataObj.append('email', formData.email);
+    formDataObj.append('status', formData.status);
+    
+    if (formData.phone) formDataObj.append('phone', formData.phone);
+    if (formData.password) formDataObj.append('password', formData.password);
+    if (formData.profilePhoto) formDataObj.append('profilePhoto', formData.profilePhoto);
+    if (formData.documentOne) formDataObj.append('documentOne', formData.documentOne);
+    if (formData.documentTwo) formDataObj.append('documentTwo', formData.documentTwo);
 
-    if (formData.password) {
-      submitData.password = formData.password;
-    }
-
-    if (editingTrainer) {
-      updateTrainerMutation.mutate({ id: editingTrainer._id, data: submitData });
-    } else {
-      createTrainerMutation.mutate(submitData);
+    try {
+      const endpoint = editingTrainer ? `/api/admin/trainers/${editingTrainer._id}` : '/api/admin/trainers';
+      const method = editingTrainer ? 'PATCH' : 'POST';
+      
+      const response = await fetch(endpoint, {
+        method,
+        body: formDataObj,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save trainer');
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/trainers'] });
+      setIsAddDialogOpen(false);
+      setEditingTrainer(null);
+      resetForm();
+      
+      toast({
+        title: "Success",
+        description: editingTrainer ? "Trainer updated successfully" : "Trainer created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trainer",
+        variant: "destructive",
+      });
     }
   };
 
@@ -261,6 +303,14 @@ export default function AdminTrainersEnhanced() {
       phone: trainer.phone || "",
       password: "",
       status: trainer.status || "active",
+      profilePhoto: null,
+      documentOne: null,
+      documentTwo: null,
+    });
+    setFileNames({
+      profilePhoto: trainer.profilePhoto ? "Current: " + trainer.profilePhoto.split('/').pop() : "",
+      documentOne: trainer.documentOne ? "Current: " + trainer.documentOne.split('/').pop() : "",
+      documentTwo: trainer.documentTwo ? "Current: " + trainer.documentTwo.split('/').pop() : "",
     });
   };
 
@@ -581,6 +631,72 @@ export default function AdminTrainersEnhanced() {
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="profilePhoto">Profile Photo</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="profilePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setFormData({ ...formData, profilePhoto: file });
+                      setFileNames({ ...fileNames, profilePhoto: file?.name || "" });
+                    }}
+                    className="flex-1"
+                    data-testid="input-profile-photo"
+                  />
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                </div>
+                {fileNames.profilePhoto && (
+                  <p className="text-sm text-muted-foreground">{fileNames.profilePhoto}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="documentOne">Document 1 (ID/Certificate)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="documentOne"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setFormData({ ...formData, documentOne: file });
+                      setFileNames({ ...fileNames, documentOne: file?.name || "" });
+                    }}
+                    className="flex-1"
+                    data-testid="input-document-one"
+                  />
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                </div>
+                {fileNames.documentOne && (
+                  <p className="text-sm text-muted-foreground">{fileNames.documentOne}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="documentTwo">Document 2 (Optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="documentTwo"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setFormData({ ...formData, documentTwo: file });
+                      setFileNames({ ...fileNames, documentTwo: file?.name || "" });
+                    }}
+                    className="flex-1"
+                    data-testid="input-document-two"
+                  />
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                </div>
+                {fileNames.documentTwo && (
+                  <p className="text-sm text-muted-foreground">{fileNames.documentTwo}</p>
+                )}
               </div>
             </div>
             <DialogFooter>

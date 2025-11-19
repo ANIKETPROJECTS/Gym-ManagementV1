@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Copy, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AssignPlanDialog } from "@/components/assign-plan-dialog";
@@ -19,15 +22,45 @@ const DIET_CATEGORIES = [
   { value: 'vegetarian', label: 'Vegetarian' },
 ];
 
+interface DietTemplateFormData {
+  name: string;
+  description: string;
+  category: string;
+  targetCalories: string;
+}
+
 export function DietTemplateList() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [formData, setFormData] = useState<DietTemplateFormData>({
+    name: "",
+    description: "",
+    category: "weight_loss",
+    targetCalories: "",
+  });
 
   const { data: templates = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/diet-plan-templates'],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      apiRequest("PATCH", `/api/diet-plans/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/diet-plan-templates'] });
+      toast({ title: "Success", description: "Diet template updated successfully" });
+      setEditDialogOpen(false);
+      setEditingTemplate(null);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const cloneMutation = useMutation({
@@ -51,6 +84,49 @@ export function DietTemplateList() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      category: "weight_loss",
+      targetCalories: "",
+    });
+  };
+
+  const handleEdit = (template: any) => {
+    setEditingTemplate(template);
+    setFormData({
+      name: template.name,
+      description: template.description ?? "",
+      category: template.category ?? "weight_loss",
+      targetCalories: String(template.targetCalories ?? ""),
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim()) {
+      toast({ title: "Error", description: "Please enter a template name", variant: "destructive" });
+      return;
+    }
+
+    const targetCalories = parseFloat(formData.targetCalories);
+    if (isNaN(targetCalories) || targetCalories <= 0) {
+      toast({ title: "Error", description: "Please enter valid target calories (greater than 0)", variant: "destructive" });
+      return;
+    }
+
+    if (editingTemplate) {
+      updateMutation.mutate({ 
+        id: editingTemplate._id, 
+        data: {
+          ...formData,
+          targetCalories,
+        }
+      });
+    }
+  };
 
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -152,6 +228,7 @@ export function DietTemplateList() {
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => handleEdit(template)}
                     data-testid={`button-edit-${template._id}`}
                   >
                     <Edit className="h-3 w-3 mr-1" />
@@ -178,6 +255,91 @@ export function DietTemplateList() {
         onOpenChange={setAssignDialogOpen}
         plan={selectedPlan}
       />
+
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setEditingTemplate(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Diet Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name *</Label>
+              <Input
+                id="template-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., High Protein Weight Loss"
+                data-testid="input-template-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description</Label>
+              <Textarea
+                id="template-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe this diet plan template..."
+                rows={3}
+                data-testid="textarea-template-description"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template-category">Category *</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger id="template-category" data-testid="select-template-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIET_CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="target-calories">Target Calories *</Label>
+              <Input
+                id="target-calories"
+                type="number"
+                value={formData.targetCalories}
+                onChange={(e) => setFormData({ ...formData, targetCalories: e.target.value })}
+                placeholder="0"
+                data-testid="input-target-calories"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditDialogOpen(false);
+                  setEditingTemplate(null);
+                  resetForm();
+                }}
+                data-testid="button-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={updateMutation.isPending}
+                data-testid="button-save-template"
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
