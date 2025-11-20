@@ -10,9 +10,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image, ChevronDown, TrendingUp, Scale, Ruler, LineChart, Target, Award, Trophy, FileText, MessageSquare, TicketIcon, Bell, MessageCircle, CalendarDays } from "lucide-react";
+import { Dumbbell, Calendar, Video, UtensilsCrossed, User, History, Image, ChevronDown, TrendingUp, Scale, Ruler, LineChart, Target, Award, Trophy, FileText, MessageSquare, TicketIcon, Bell, MessageCircle, CalendarDays, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/lib/language-context";
+import { queryClient } from "@/lib/queryClient";
 
 interface ClientHeaderProps {
   currentPage?: 'dashboard' | 'workouts' | 'videos' | 'diet' | 'sessions' | 'history' | 'workout-history' | 'progress' | 'profile' | 'weight-tracking' | 'body-measurements' | 'progress-charts' | 'weekly-completion' | 'achievements' | 'achievement-gallery' | 'personal-records' | 'monthly-reports' | 'goals' | 'calendar' | 'messages' | 'support-tickets' | 'announcements' | 'forum';
@@ -21,6 +22,22 @@ interface ClientHeaderProps {
 export function ClientHeader({ currentPage }: ClientHeaderProps) {
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        queryClient.clear();
+        setLocation('/');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <header className="border-b">
@@ -193,6 +210,14 @@ export function ClientHeader({ currentPage }: ClientHeaderProps) {
               data-testid="button-profile"
             >
               <User className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout} 
+              data-testid="button-logout"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>

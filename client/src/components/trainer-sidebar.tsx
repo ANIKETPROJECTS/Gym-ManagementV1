@@ -1,5 +1,5 @@
-import { Home, Users, Video, UtensilsCrossed, Calendar, BarChart3 } from "lucide-react";
-import { Link } from "wouter";
+import { Users, Video, UtensilsCrossed, Calendar, BarChart3, LogOut, LayoutDashboard } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -9,11 +9,12 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
-import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 const menuItems = [
-  { title: "Dashboard", icon: Home, url: "/trainer/dashboard" },
+  { title: "Dashboard", icon: LayoutDashboard, url: "/trainer/dashboard" },
   { title: "My Clients", icon: Users, url: "/trainer/clients" },
   { title: "Live Sessions", icon: Calendar, url: "/trainer/sessions" },
   { title: "Diet, Meals & Workout", icon: UtensilsCrossed, url: "/trainer/diet" },
@@ -22,7 +23,23 @@ const menuItems = [
 ];
 
 export function TrainerSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        queryClient.clear();
+        setLocation('/');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <Sidebar>
@@ -33,14 +50,6 @@ export function TrainerSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild data-testid="link-home">
-                  <Link href="/trainer/dashboard">
-                    <Home />
-                    <span>Home</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -59,6 +68,16 @@ export function TrainerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} data-testid="button-logout">
+              <LogOut />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

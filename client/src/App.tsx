@@ -23,9 +23,9 @@ import AdminTrainersEnhanced from "@/pages/admin-trainers-enhanced";
 import TrainerDashboard from "@/pages/trainer-dashboard";
 import TrainerClients from "@/pages/trainer-clients";
 import TrainerDiet from "@/pages/trainer-diet";
-import TrainerWorkouts from "@/pages/trainer-workouts";
 import TrainerVideos from "@/pages/trainer-videos";
 import TrainerSessions from "@/pages/trainer-sessions";
+import TrainerAnalytics from "@/pages/trainer-analytics";
 import ClientDashboard from "@/pages/client-dashboard";
 import ClientWorkouts from "@/pages/client-workouts";
 import ClientVideos from "@/pages/client-videos";
@@ -75,9 +75,9 @@ function Router() {
       <Route path="/trainer/dashboard" component={TrainerDashboard} />
       <Route path="/trainer/clients" component={TrainerClients} />
       <Route path="/trainer/diet" component={TrainerDiet} />
-      <Route path="/trainer/workouts" component={TrainerWorkouts} />
       <Route path="/trainer/videos" component={TrainerVideos} />
       <Route path="/trainer/sessions" component={TrainerSessions} />
+      <Route path="/trainer/analytics" component={TrainerAnalytics} />
       <Route path="/client" component={ClientDashboard} />
       <Route path="/client/workouts" component={ClientWorkouts} />
       <Route path="/client/videos" component={ClientVideos} />

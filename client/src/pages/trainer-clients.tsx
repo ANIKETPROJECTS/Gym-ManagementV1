@@ -2,66 +2,36 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Search, Mail, Phone, Target, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { 
-  Users, 
-  Search, 
-  Mail, 
-  Phone, 
-  Calendar,
-  TrendingUp,
-  Package
-} from "lucide-react";
+import type { Client } from "@shared/schema";
+import { useState } from "react";
 
 export default function TrainerClients() {
-  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [trainerId, setTrainerId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = localStorage.getItem('trainerId');
-    if (!id) {
-      setLocation('/trainer/dashboard');
-    } else {
-      setTrainerId(id);
-    }
-  }, [setLocation]);
-
-  const { data: myClients = [], isLoading } = useQuery<any[]>({
-    queryKey: [`/api/trainers/${trainerId}/clients`],
-    enabled: !!trainerId,
-  });
-
-  const { data: packages = [] } = useQuery<any[]>({
-    queryKey: ['/api/packages'],
-  });
-
-  const packageById = packages.reduce((map: Record<string, any>, pkg) => {
-    map[String(pkg._id)] = pkg;
-    return map;
-  }, {});
-
-  const filteredClients = myClients
-    .filter(client => 
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .map(client => {
-      const packageId = typeof client.packageId === 'object' ? String(client.packageId._id) : String(client.packageId);
-      return {
-        ...client,
-        packageData: packageById[packageId] || null
-      };
-    });
-
+  
   const style = {
     "--sidebar-width": "16rem",
   };
+
+  const { data: user } = useQuery<any>({
+    queryKey: ['/api/me']
+  });
+
+  const trainerId = user?.userId;
+
+  const { data: clients = [], isLoading } = useQuery<Client[]>({
+    queryKey: ['/api/trainers', trainerId, 'clients'],
+    enabled: !!trainerId
+  });
+
+  const filteredClients = clients.filter((client: Client) =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -78,112 +48,128 @@ export default function TrainerClients() {
             <ThemeToggle />
           </header>
 
-          <main className="flex-1 overflow-auto p-8">
+          <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-muted-foreground">
-                    Manage and track your assigned clients
-                  </p>
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search clients by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search"
+                  />
                 </div>
-                <Badge className="bg-chart-1" data-testid="badge-total-clients">
-                  <Users className="h-3 w-3 mr-1" />
-                  {filteredClients.length} Active Clients
-                </Badge>
               </div>
 
-              <div className="flex items-center gap-4 p-4 rounded-md border bg-card">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search clients by name or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-0 focus-visible:ring-0"
-                  data-testid="input-search-clients"
-                />
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Clients</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{clients.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Active Clients</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                      {clients.filter((c: Client) => c.status === 'active').length}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">New This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {clients.filter((c: Client) => {
+                        const created = new Date(c.createdAt);
+                        const now = new Date();
+                        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+                      }).length}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
-              {isLoading ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    Loading clients...
-                  </CardContent>
-                </Card>
-              ) : filteredClients.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    {searchQuery ? 'No clients match your search' : 'No clients assigned yet'}
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2">
-                  {filteredClients.map((client) => (
-                    <Card key={client._id} data-testid={`card-client-${client._id}`}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <CardTitle className="font-display text-xl" data-testid="text-client-name">
-                              {client.name}
-                            </CardTitle>
-                            {client.packageData && (
-                              <Badge variant="outline" className="mt-2" data-testid="badge-package">
-                                <Package className="h-3 w-3 mr-1" />
-                                {client.packageData.name}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span data-testid="text-client-email">{client.email}</span>
-                        </div>
-                        {client.phone && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span data-testid="text-client-phone">{client.phone}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            Joined {new Date(client.joinDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            Subscription: {client.subscriptionStatus || 'Active'}
-                          </span>
-                        </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Clients</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <p className="text-center text-muted-foreground py-8">Loading clients...</p>
+                  ) : filteredClients.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No clients found</p>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {filteredClients.map((client: Client) => (
+                        <Card key={client._id} className="hover-elevate">
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shrink-0">
+                                {client.name.charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <h3 className="font-semibold text-lg">{client.name}</h3>
+                                  <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
+                                    {client.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="space-y-1.5 text-sm">
+                                  {client.email && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <Mail className="h-3.5 w-3.5" />
+                                      <span className="truncate">{client.email}</span>
+                                    </div>
+                                  )}
+                                  {client.phone && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <Phone className="h-3.5 w-3.5" />
+                                      <span>{client.phone}</span>
+                                    </div>
+                                  )}
+                                  {client.goal && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <Target className="h-3.5 w-3.5" />
+                                      <span className="capitalize">{client.goal}</span>
+                                    </div>
+                                  )}
+                                  {client.fitnessLevel && (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                      <TrendingUp className="h-3.5 w-3.5" />
+                                      <span className="capitalize">{client.fitnessLevel}</span>
+                                    </div>
+                                  )}
+                                </div>
 
-                        <div className="flex gap-2 pt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => setLocation(`/trainer/diet`)}
-                            data-testid="button-assign-diet"
-                          >
-                            Assign Diet Plan
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => setLocation(`/trainer/workouts`)}
-                            data-testid="button-assign-workout"
-                          >
-                            Assign Workout
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                                <div className="flex gap-2 mt-3">
+                                  <Button size="sm" variant="outline" className="flex-1" data-testid={`button-view-${client._id}`}>
+                                    View Details
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="flex-1" data-testid={`button-message-${client._id}`}>
+                                    Message
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </main>
         </div>

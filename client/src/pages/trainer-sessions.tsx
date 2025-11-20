@@ -3,37 +3,35 @@ import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Users, Video as VideoIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { Calendar, Clock, Users, Video } from "lucide-react";
+import type { LiveSession } from "@shared/schema";
 import { format } from "date-fns";
 
 export default function TrainerSessions() {
-  const [trainerId, setTrainerId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = localStorage.getItem('trainerId');
-    if (id) {
-      setTrainerId(id);
-    }
-  }, []);
-
-  const { data: sessions = [], isLoading } = useQuery<any[]>({
-    queryKey: [`/api/trainers/${trainerId}/sessions`],
-    enabled: !!trainerId,
-  });
-
-  const upcomingSessions = sessions.filter(s => 
-    new Date(s.date) > new Date() && s.status !== 'completed'
-  );
-
-  const pastSessions = sessions.filter(s => 
-    s.status === 'completed' || new Date(s.date) < new Date()
-  );
-
   const style = {
     "--sidebar-width": "16rem",
   };
+
+  const { data: user } = useQuery<any>({
+    queryKey: ['/api/me']
+  });
+
+  const trainerId = user?.userId;
+
+  const { data: sessions = [], isLoading } = useQuery<LiveSession[]>({
+    queryKey: ['/api/trainers', trainerId, 'sessions'],
+    enabled: !!trainerId
+  });
+
+  const upcomingSessions = sessions.filter((s: LiveSession) => 
+    s.status === 'upcoming' && new Date(s.scheduledAt) > new Date()
+  ).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+  const pastSessions = sessions.filter((s: LiveSession) => 
+    s.status === 'completed' || new Date(s.scheduledAt) <= new Date()
+  ).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -50,118 +48,113 @@ export default function TrainerSessions() {
             <ThemeToggle />
           </header>
 
-          <main className="flex-1 overflow-auto p-8">
+          <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-muted-foreground">
-                    Manage your scheduled training sessions
-                  </p>
-                </div>
-                <Badge className="bg-chart-1" data-testid="badge-upcoming">
-                  {upcomingSessions.length} Upcoming
-                </Badge>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Sessions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{upcomingSessions.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Completed Sessions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{pastSessions.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{sessions.length}</div>
+                  </CardContent>
+                </Card>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-display font-bold mb-4">Upcoming Sessions</h2>
-                  {isLoading ? (
-                    <Card>
-                      <CardContent className="py-8 text-center text-muted-foreground">
-                        Loading sessions...
-                      </CardContent>
-                    </Card>
-                  ) : upcomingSessions.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center text-muted-foreground">
-                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        No upcoming sessions scheduled
-                      </CardContent>
-                    </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Sessions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {upcomingSessions.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No upcoming sessions</p>
                   ) : (
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {upcomingSessions.map((session) => (
-                        <Card key={session._id} data-testid={`card-session-${session._id}`}>
-                          <CardHeader>
-                            <div className="flex items-start justify-between gap-4">
-                              <CardTitle className="font-display" data-testid="text-session-title">
-                                {session.title}
-                              </CardTitle>
-                              <Badge className="bg-chart-1" data-testid="badge-type">
-                                {session.type}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span>{format(new Date(session.date), 'MMM dd, yyyy')}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span>{session.time} ({session.duration})</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>
-                                {session.currentParticipants || 0}/{session.maxParticipants} participants
-                              </span>
-                            </div>
-                            {session.meetingLink && (
-                              <div className="flex items-center gap-2 text-sm">
-                                <Video className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-chart-1">Meeting link ready</span>
+                    <div className="space-y-3">
+                      {upcomingSessions.map((session: LiveSession) => (
+                        <Card key={session._id} className="hover-elevate">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <div className="h-10 w-10 rounded-md bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white">
+                                    <Calendar className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-semibold">{session.title}</h3>
+                                    <p className="text-sm text-muted-foreground">{session.description}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>{format(new Date(session.scheduledAt), 'PPp')}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-3.5 w-3.5" />
+                                    <span>{session.maxParticipants || 10} max participants</span>
+                                  </div>
+                                  <Badge variant="default">
+                                    {session.sessionType || 'Group'}
+                                  </Badge>
+                                </div>
                               </div>
-                            )}
+                              
+                              <Button data-testid={`button-join-${session._id}`}>
+                                <VideoIcon className="h-4 w-4 mr-2" />
+                                Start Session
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
                     </div>
                   )}
-                </div>
+                </CardContent>
+              </Card>
 
-                <div>
-                  <h2 className="text-xl font-display font-bold mb-4">Past Sessions</h2>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Past Sessions</CardTitle>
+                </CardHeader>
+                <CardContent>
                   {pastSessions.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center text-muted-foreground">
-                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        No past sessions
-                      </CardContent>
-                    </Card>
+                    <p className="text-center text-muted-foreground py-8">No past sessions</p>
                   ) : (
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {pastSessions.slice(0, 6).map((session) => (
-                        <Card key={session._id} data-testid={`card-past-session-${session._id}`}>
-                          <CardHeader>
-                            <div className="flex items-start justify-between gap-4">
-                              <CardTitle className="font-display text-muted-foreground" data-testid="text-past-session-title">
-                                {session.title}
-                              </CardTitle>
-                              <Badge variant="secondary" data-testid="badge-completed">
-                                Completed
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-3 text-muted-foreground">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="h-4 w-4" />
-                              <span>{format(new Date(session.date), 'MMM dd, yyyy')}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Users className="h-4 w-4" />
-                              <span>
-                                {session.currentParticipants || 0} participants
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
+                    <div className="space-y-2">
+                      {pastSessions.slice(0, 10).map((session: LiveSession) => (
+                        <div key={session._id} className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                          <div className="flex-1">
+                            <p className="font-medium">{session.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(session.scheduledAt), 'PPp')}
+                            </p>
+                          </div>
+                          <Badge variant="secondary">{session.status}</Badge>
+                        </div>
                       ))}
                     </div>
                   )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </main>
         </div>

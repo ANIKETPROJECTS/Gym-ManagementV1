@@ -1,16 +1,15 @@
 import {
   LayoutDashboard,
   Users,
-  UserPlus,
   Video,
   UtensilsCrossed,
   Calendar,
   BarChart3,
   DollarSign,
-  Home,
   FileText,
   Settings,
   TrendingUp,
+  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,8 +20,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/admin/dashboard" },
@@ -38,7 +39,23 @@ const menuItems = [
 ];
 
 export function AdminSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        queryClient.clear();
+        setLocation('/');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <Sidebar>
@@ -49,14 +66,6 @@ export function AdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild data-testid="link-home">
-                  <Link href="/admin">
-                    <Home />
-                    <span>Home</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -75,6 +84,16 @@ export function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} data-testid="button-logout">
+              <LogOut />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

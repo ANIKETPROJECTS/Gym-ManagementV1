@@ -2,12 +2,12 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Calendar, Video as VideoIcon, Users, TrendingUp, Activity, Clock } from "lucide-react";
+import { TrendingUp, Users, Calendar, Video as VideoIcon, Activity, Award } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Client, LiveSession, Video as VideoType } from "@shared/schema";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export default function TrainerDashboard() {
+export default function TrainerAnalytics() {
   const style = {
     "--sidebar-width": "16rem",
   };
@@ -33,35 +33,25 @@ export default function TrainerDashboard() {
     enabled: !!trainerId
   });
 
-  const upcomingSessions = sessions.filter((s: LiveSession) => 
-    s.status === 'upcoming' && new Date(s.scheduledAt) > new Date()
-  );
-
-  const thisWeekSessions = sessions.filter((s: LiveSession) => {
-    const sessionDate = new Date(s.scheduledAt);
-    const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return sessionDate >= now && sessionDate <= weekFromNow;
-  });
-
-  const activeClients = clients;
-
-  const clientGrowthData = [
-    { month: 'Jan', clients: 8 },
-    { month: 'Feb', clients: 12 },
-    { month: 'Mar', clients: 15 },
-    { month: 'Apr', clients: 18 },
-    { month: 'May', clients: activeClients.length || 20 },
+  const clientsByGoal = [
+    { name: 'Weight Loss', value: clients.filter(c => c.goal?.includes('weight')).length, color: '#3b82f6' },
+    { name: 'Muscle Gain', value: clients.filter(c => c.goal?.includes('muscle')).length, color: '#22c55e' },
+    { name: 'Fitness', value: clients.filter(c => c.goal?.includes('fitness')).length, color: '#a855f7' },
+    { name: 'Other', value: clients.filter(c => !c.goal || (!c.goal.includes('weight') && !c.goal.includes('muscle') && !c.goal.includes('fitness'))).length, color: '#f59e0b' },
   ];
 
-  const sessionData = [
-    { day: 'Mon', sessions: 3 },
-    { day: 'Tue', sessions: 5 },
-    { day: 'Wed', sessions: 4 },
-    { day: 'Thu', sessions: 6 },
-    { day: 'Fri', sessions: 5 },
-    { day: 'Sat', sessions: 7 },
-    { day: 'Sun', sessions: 2 },
+  const clientsByLevel = [
+    { name: 'Beginner', value: clients.filter(c => c.fitnessLevel === 'beginner').length },
+    { name: 'Intermediate', value: clients.filter(c => c.fitnessLevel === 'intermediate').length },
+    { name: 'Advanced', value: clients.filter(c => c.fitnessLevel === 'advanced').length },
+  ];
+
+  const monthlyProgress = [
+    { month: 'Jan', clients: 5, sessions: 12 },
+    { month: 'Feb', clients: 8, sessions: 18 },
+    { month: 'Mar', clients: 12, sessions: 24 },
+    { month: 'Apr', clients: 15, sessions: 30 },
+    { month: 'May', clients: clients.length || 18, sessions: sessions.length || 36 },
   ];
 
   return (
@@ -73,7 +63,7 @@ export default function TrainerDashboard() {
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <h1 className="text-2xl font-display font-bold tracking-tight">
-                Trainer Dashboard
+                My Analytics
               </h1>
             </div>
             <ThemeToggle />
@@ -81,65 +71,54 @@ export default function TrainerDashboard() {
 
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto space-y-6">
-              {/* Stats Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
                   <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Assigned Clients</CardTitle>
+                    <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
                     <Users className="h-5 w-5 text-blue-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{activeClients.length}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Active clients under your supervision</p>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {clients.filter(c => c.status === 'active').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">+{Math.floor(clients.length * 0.15)} this month</p>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
                   <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Upcoming Sessions</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
                     <Calendar className="h-5 w-5 text-green-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{upcomingSessions.length}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{thisWeekSessions.length} sessions this week</p>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{sessions.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Lifetime sessions conducted</p>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
                   <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Videos Created</CardTitle>
+                    <CardTitle className="text-sm font-medium">Video Library</CardTitle>
                     <VideoIcon className="h-5 w-5 text-purple-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{videos.length}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Training videos uploaded</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Profile</CardTitle>
-                    <User className="h-5 w-5 text-orange-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{user?.name || 'Trainer'}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Strength & Conditioning</p>
+                    <p className="text-xs text-muted-foreground mt-1">Training videos created</p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Charts Row */}
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-blue-500" />
-                      <CardTitle>Client Growth</CardTitle>
+                      <CardTitle>Growth Trend</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={clientGrowthData}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={monthlyProgress}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="month" className="text-xs" />
                         <YAxis className="text-xs" />
@@ -155,7 +134,16 @@ export default function TrainerDashboard() {
                           dataKey="clients" 
                           stroke="#3b82f6" 
                           strokeWidth={2}
+                          name="Clients"
                           dot={{ fill: '#3b82f6', r: 4 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="sessions" 
+                          stroke="#22c55e" 
+                          strokeWidth={2}
+                          name="Sessions"
+                          dot={{ fill: '#22c55e', r: 4 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -166,14 +154,14 @@ export default function TrainerDashboard() {
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-green-500" />
-                      <CardTitle>Weekly Sessions</CardTitle>
+                      <CardTitle>Clients by Fitness Level</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={sessionData}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={clientsByLevel}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="day" className="text-xs" />
+                        <XAxis dataKey="name" className="text-xs" />
                         <YAxis className="text-xs" />
                         <Tooltip 
                           contentStyle={{ 
@@ -181,45 +169,45 @@ export default function TrainerDashboard() {
                             border: '1px solid hsl(var(--border))' 
                           }} 
                         />
-                        <Legend />
-                        <Bar dataKey="sessions" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Recent Activity */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-purple-500" />
-                    <CardTitle>Recent Clients</CardTitle>
+                    <Award className="h-5 w-5 text-purple-500" />
+                    <CardTitle>Clients by Goal Type</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {activeClients.slice(0, 5).map((client: Client) => (
-                      <div key={client.id} className="flex items-center justify-between p-3 rounded-md bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                            {client.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-medium">{client.name}</p>
-                            <p className="text-xs text-muted-foreground">{client.email}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium capitalize">{client.goal || 'Weight Loss'}</p>
-                          <p className="text-xs text-muted-foreground">Client</p>
-                        </div>
-                      </div>
-                    ))}
-                    {activeClients.length === 0 && (
-                      <p className="text-center text-muted-foreground py-6">No clients assigned yet</p>
-                    )}
-                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={clientsByGoal}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {clientsByGoal.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))' 
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>

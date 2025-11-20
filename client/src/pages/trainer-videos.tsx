@@ -3,26 +3,30 @@ import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search, Video as VideoIcon, Clock, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { Video as VideoType } from "@shared/schema";
 import { useState } from "react";
-import { Video, Search, Clock } from "lucide-react";
 
 export default function TrainerVideos() {
   const [searchQuery, setSearchQuery] = useState("");
-
-  const { data: videos = [], isLoading } = useQuery<any[]>({
-    queryKey: ['/api/videos'],
-  });
-
-  const filteredVideos = videos.filter(video => 
-    video.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  
   const style = {
     "--sidebar-width": "16rem",
   };
+
+  const { data: videos = [], isLoading } = useQuery<VideoType[]>({
+    queryKey: ['/api/videos']
+  });
+
+  const filteredVideos = videos.filter((video: VideoType) =>
+    video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    video.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const categories = Array.from(new Set(videos.map((v: VideoType) => v.category)));
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -36,88 +40,125 @@ export default function TrainerVideos() {
                 Video Library
               </h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <Button data-testid="button-upload-video">Upload Video</Button>
+              <ThemeToggle />
+            </div>
           </header>
 
-          <main className="flex-1 overflow-auto p-8">
+          <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-muted-foreground">
-                    Browse and manage training videos
-                  </p>
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search videos by title or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search"
+                  />
                 </div>
-                <Badge className="bg-chart-1" data-testid="badge-total-videos">
-                  {filteredVideos.length} Videos
-                </Badge>
               </div>
 
-              <div className="flex items-center gap-4 p-4 rounded-md border bg-card">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search videos by title or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-0 focus-visible:ring-0"
-                  data-testid="input-search-videos"
-                />
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Videos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{videos.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Categories</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{categories.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Duration</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                      {Math.round(videos.reduce((sum: number, v: VideoType) => sum + (v.duration || 0), 0) / 60)}h
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                      {videos.filter((v: VideoType) => {
+                        const created = new Date(v.createdAt);
+                        const now = new Date();
+                        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+                      }).length}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
-              {isLoading ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    Loading videos...
-                  </CardContent>
-                </Card>
-              ) : filteredVideos.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    {searchQuery ? 'No videos match your search' : 'No videos available'}
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-3">
-                  {filteredVideos.map((video) => (
-                    <Card key={video._id} data-testid={`card-video-${video._id}`}>
-                      <CardHeader className="p-0">
-                        <div className="aspect-video bg-muted rounded-t-md flex items-center justify-center">
-                          {video.thumbnail ? (
-                            <img 
-                              src={video.thumbnail} 
-                              alt={video.title}
-                              className="w-full h-full object-cover rounded-t-md"
-                            />
-                          ) : (
-                            <Video className="h-12 w-12 opacity-50" />
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-3">
-                        <CardTitle className="font-display text-base line-clamp-1" data-testid="text-video-title">
-                          {video.title}
-                        </CardTitle>
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge variant="outline" data-testid="badge-category">
-                            {video.category}
-                          </Badge>
-                          {video.duration && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {video.duration} min
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Videos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <p className="text-center text-muted-foreground py-8">Loading videos...</p>
+                  ) : filteredVideos.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No videos found</p>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-3">
+                      {filteredVideos.map((video: VideoType) => (
+                        <Card key={video.id} className="hover-elevate">
+                          <CardContent className="p-0">
+                            <div className="aspect-video bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center rounded-t-md">
+                              <VideoIcon className="h-12 w-12 text-muted-foreground" />
                             </div>
-                          )}
-                        </div>
-                        {video.difficulty && (
-                          <Badge variant="secondary" data-testid="badge-difficulty">
-                            {video.difficulty}
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                            <div className="p-4 space-y-3">
+                              <div>
+                                <h3 className="font-semibold line-clamp-1">{video.title}</h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                  {video.description || 'No description'}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="secondary">{video.category}</Badge>
+                                <Badge variant="outline">{video.category || 'Intermediate'}</Badge>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{video.duration || 0} min</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  <span>{Math.floor(Math.random() * 100)} views</span>
+                                </div>
+                              </div>
+
+                              <Button size="sm" className="w-full" variant="outline" data-testid={`button-edit-${video.id}`}>
+                                Edit Video
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </main>
         </div>
